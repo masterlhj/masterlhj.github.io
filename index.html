@@ -1,1 +1,1115 @@
-hello
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lee Hong Jae · Quantitative Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050810;
+    --bg2: #080d1a;
+    --panel: #0b1120;
+    --border: #1a2540;
+    --border2: #243050;
+    --orange: #e87722;
+    --orange2: #ff9a3c;
+    --blue: #3b82f6;
+    --blue2: #60a5fa;
+    --cyan: #06b6d4;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --text: #c8d4e8;
+    --text2: #8899b4;
+    --text3: #4a5a74;
+    --white: #e8eef8;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --font-serif: 'Playfair Display', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── TICKER TAPE ── */
+  .ticker-wrap {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 28px;
+    background: var(--orange);
+    z-index: 100;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .ticker-inner {
+    display: flex;
+    white-space: nowrap;
+    animation: ticker 35s linear infinite;
+  }
+  .ticker-item {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 0 24px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ticker-item .chg { opacity: 0.7; }
+  .ticker-item .sep { opacity: 0.3; }
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 28px; left: 0; right: 0;
+    height: 52px;
+    background: rgba(5,8,16,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 0;
+  }
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-logo::before {
+    content: '▶';
+    font-size: 8px;
+    color: var(--orange);
+  }
+  .nav-links {
+    display: flex;
+    gap: 0;
+    list-style: none;
+  }
+  .nav-links a {
+    display: block;
+    padding: 0 16px;
+    height: 52px;
+    line-height: 52px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text2);
+    text-decoration: none;
+    border-right: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .nav-links a:first-child { border-left: 1px solid var(--border); }
+  .nav-links a:hover { color: var(--orange); background: rgba(232,119,34,0.06); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    margin-top: 80px;
+    padding: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: calc(100vh - 80px);
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Animated grid bg */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .hero-left {
+    padding: 60px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    border-right: 1px solid var(--border);
+  }
+
+  .hero-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--orange);
+  }
+
+  .hero-name {
+    font-family: var(--font-serif);
+    font-size: clamp(42px, 5vw, 72px);
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--white);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-name-ko {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text2);
+    margin-bottom: 32px;
+    letter-spacing: 0.1em;
+  }
+
+  .hero-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--cyan);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .hero-desc {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--text);
+    max-width: 520px;
+    margin-bottom: 48px;
+  }
+  .hero-desc strong { color: var(--orange2); font-weight: 400; }
+
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .stat { display: flex; flex-direction: column; gap: 4px; }
+  .stat-val {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -0.02em;
+  }
+  .stat-val span { font-size: 14px; color: var(--orange); }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  /* ── TERMINAL PANEL ── */
+  .hero-right {
+    background: var(--bg2);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+  }
+  .terminal-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+  }
+  .terminal-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .terminal-dot.r { background: #ef4444; }
+  .terminal-dot.y { background: #eab308; }
+  .terminal-dot.g { background: #22c55e; }
+  .terminal-title {
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: 6px;
+    letter-spacing: 0.08em;
+  }
+  .terminal-body {
+    padding: 20px 20px;
+    flex: 1;
+    overflow-y: auto;
+    font-size: 11.5px;
+    line-height: 1.9;
+  }
+  .t-comment { color: var(--text3); }
+  .t-key { color: var(--cyan); }
+  .t-val { color: var(--green); }
+  .t-str { color: var(--orange2); }
+  .t-num { color: var(--blue2); }
+  .t-punct { color: var(--text2); }
+  .t-section {
+    margin-top: 16px;
+    margin-bottom: 4px;
+    color: var(--yellow);
+    font-weight: 600;
+  }
+  .t-blink {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--orange);
+    margin-left: 4px;
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── SECTION BASE ── */
+  .section {
+    padding: 80px 56px;
+    border-bottom: 1px solid var(--border);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .section-full {
+    border-bottom: 1px solid var(--border);
+  }
+  .section-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 80px 56px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 200px;
+  }
+
+  /* ── EXPERTISE GRID ── */
+  .expertise-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .expertise-card {
+    background: var(--bg);
+    padding: 32px 28px;
+    position: relative;
+    transition: background 0.3s;
+  }
+  .expertise-card:hover { background: var(--bg2); }
+  .expertise-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: 16px; right: 20px;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+  .card-icon {
+    font-size: 22px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+  .card-desc {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .tag:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── RESEARCH TABLE ── */
+  .research-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .research-table th {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 16px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .research-table th:first-child { padding-left: 0; }
+  .research-table td {
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 12px;
+  }
+  .research-table td:first-child { padding-left: 0; }
+  .research-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .research-table tr:last-child td { border-bottom: none; }
+
+  .r-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border: 1px solid;
+  }
+  .r-status::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .r-status.live { color: var(--green); border-color: var(--green); }
+  .r-status.live::before { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .r-status.wip { color: var(--yellow); border-color: var(--yellow); }
+  .r-status.wip::before { background: var(--yellow); }
+  .r-status.pub { color: var(--blue2); border-color: var(--blue2); }
+  .r-status.pub::before { background: var(--blue2); }
+
+  .r-title {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .r-sub {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .r-method {
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── SKILLS MATRIX ── */
+  .skills-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+  .skill-group { }
+  .skill-group-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .skill-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .skill-name {
+    width: 140px;
+    font-size: 11px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .skill-bar-wrap {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+  }
+  .skill-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--orange), var(--orange2));
+    position: relative;
+    transition: width 1.5s cubic-bezier(0.16,1,0.3,1);
+  }
+  .skill-bar.cyan { background: linear-gradient(90deg, var(--cyan), var(--blue2)); }
+  .skill-bar.green { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .skill-pct {
+    width: 32px;
+    font-size: 10px;
+    color: var(--text3);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── CONTACT ── */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 48px;
+  }
+  .contact-card {
+    background: var(--bg);
+    padding: 32px;
+    transition: background 0.3s;
+  }
+  .contact-card:hover { background: var(--bg2); }
+  .contact-card-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+  .contact-card-val {
+    font-size: 14px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  .contact-card-sub {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 24px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .footer-copy {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+  }
+  .footer-build {
+    font-size: 10px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .footer-build::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── CHART MINI ── */
+  .spark-container {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .spark-label {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .spark-chart {
+    width: 100%;
+    height: 60px;
+  }
+
+  /* ── ANIMATE IN ── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-right { display: none; }
+    .expertise-grid { grid-template-columns: 1fr; }
+    .skills-layout { grid-template-columns: 1fr; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .section { padding: 48px 24px; }
+    .hero-left { padding: 48px 24px; }
+    .hero-stats { gap: 24px; flex-wrap: wrap; }
+    footer { padding: 24px; flex-direction: column; gap: 12px; text-align: center; }
+    nav { padding: 0 16px; }
+    .nav-links a { padding: 0 10px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">QR · PHD</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#expertise">Domain</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero" id="about">
+  <div class="hero-left">
+    <div class="hero-tag">Quantitative Research · Financial Engineering</div>
+    <h1 class="hero-name">Lee Hong Jae</h1>
+    <div class="hero-name-ko">이 홍 재 · 李弘在</div>
+    <div class="hero-title">PhD · FICC Derivatives &amp; Collateral · Citibank Korea</div>
+    <p class="hero-desc">
+      Institutional quantitative researcher specializing in <strong>derivatives pricing</strong>,
+      <strong>collateral management systems</strong>, and <strong>regulatory capital optimization</strong>.
+      Deep expertise across IRS · FX Options · CCS · XVA · Basel III · FRTB frameworks
+      with production-grade implementation across Python · Oracle · SQL pipelines.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-val">10<span>+</span></div>
+        <div class="stat-label">Years Experience</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">FRTB</div>
+        <div class="stat-label">Green Zone · SA</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">ML</div>
+        <div class="stat-label">Quant · FinML</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">KRW</div>
+        <div class="stat-label">Market Focus</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal-header">
+      <div class="terminal-dot r"></div>
+      <div class="terminal-dot y"></div>
+      <div class="terminal-dot g"></div>
+      <div class="terminal-title">profile.json — researcher</div>
+    </div>
+    <div class="terminal-body">
+      <div class="t-comment">// Quantum Equity Research · PhD Lee Hong Jae</div>
+      <br>
+      <div><span class="t-punct">{</span></div>
+      <div class="t-section">&nbsp;&nbsp;"identity"<span class="t-punct">:</span> {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"name"</span><span class="t-punct">:</span> <span class="t-str">"Lee Hong Jae (이홍재)"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"title"</span><span class="t-punct">:</span> <span class="t-str">"FICC Collateral Trader"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"institution"</span><span class="t-punct">:</span> <span class="t-str">"Citibank Korea"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"research_alias"</span><span class="t-punct">:</span> <span class="t-str">"Quantum Equity Research"</span></div>
+      <div>&nbsp;&nbsp;<span class="t-punct">}</span><span class="t-punct">,</span></div>
+      <div class="t-section">&nbsp;&nbsp;"derivatives"<span class="t-punct">:</span> [</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"IRS"</span><span class="t-punct">,</span> <span class="t-str">"CCS"</span><span class="t-punct">,</span> <span class="t-str">"FX Options"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"FX Forwards"</span><span class="t-punct">,</span> <span class="t-str">"Repo/RevRepo"</span></div>
+      <div>&nbsp;&nbsp;<span class="t-punct">]</span><span class="t-punct">,</span></div>
+      <div class="t-section">&nbsp;&nbsp;"regulatory"<span class="t-punct">:</span> {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"FRTB_SA"</span><span class="t-punct">:</span> <span class="t-str">"GREEN ZONE ✓"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"frameworks"</span><span class="t-punct">:</span> [<span class="t-str">"Basel III"</span><span class="t-punct">,</span> <span class="t-str">"SA-CCR"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"K-ICS"</span><span class="t-punct">,</span> <span class="t-str">"ICAAP"</span><span class="t-punct">,</span> <span class="t-str">"LCR"</span>]</div>
+      <div>&nbsp;&nbsp;<span class="t-punct">}</span><span class="t-punct">,</span></div>
+      <div class="t-section">&nbsp;&nbsp;"systems"<span class="t-punct">:</span> [</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"FOREX21"</span><span class="t-punct">,</span> <span class="t-str">"SAFE"</span><span class="t-punct">,</span> <span class="t-str">"MONET"</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"KETI"</span><span class="t-punct">,</span> <span class="t-str">"KSD"</span><span class="t-punct">,</span> <span class="t-str">"FLM-series"</span></div>
+      <div>&nbsp;&nbsp;<span class="t-punct">]</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;<span class="t-key">"status"</span><span class="t-punct">:</span> <span class="t-val">true</span><span class="t-punct">,</span></div>
+      <div>&nbsp;&nbsp;<span class="t-key">"open_to_collab"</span><span class="t-punct">:</span> <span class="t-val">true</span></div>
+      <div><span class="t-punct">}</span> <div class="t-blink"></div></div>
+    </div>
+    <div class="spark-container">
+      <div class="spark-label">KRW/USD Implied Vol Surface (simulated)</div>
+      <svg class="spark-chart" viewBox="0 0 380 60" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e87722" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#e87722" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="spark-path" fill="url(#sg)" stroke="none"/>
+        <path id="spark-line" fill="none" stroke="#e87722" stroke-width="1.5"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ EXPERTISE ═══ -->
+<section class="section-full" id="expertise">
+  <div class="section-inner">
+    <div class="section-label">Domain Expertise</div>
+    <div class="expertise-grid fade-up">
+      <div class="expertise-card" data-num="01">
+        <span class="card-icon">⬡</span>
+        <div class="card-title">Derivatives Pricing &amp; XVA</div>
+        <div class="card-desc">Hull-White IR modeling, Black-Scholes/Bachelier extensions, CVA/DVA/FVA computation for OTC derivatives including IRS, CCS, and FX Options with CSA netting.</div>
+        <div class="card-tags">
+          <span class="tag">IRS</span><span class="tag">FX Options</span><span class="tag">CCS</span>
+          <span class="tag">CVA/DVA</span><span class="tag">Hull-White</span>
+        </div>
+      </div>
+      <div class="expertise-card" data-num="02">
+        <span class="card-icon">◈</span>
+        <div class="card-title">Collateral Management</div>
+        <div class="card-desc">Full CSA/ISDA framework implementation, FOREX21 system enhancement, PRL (Partial Reuse Ledger) for reverse repo rehypothecation, BOK settlement mechanics.</div>
+        <div class="card-tags">
+          <span class="tag">ISDA/CSA</span><span class="tag">Repo</span><span class="tag">FOREX21</span>
+          <span class="tag">BOK</span><span class="tag">KSD</span>
+        </div>
+      </div>
+      <div class="expertise-card" data-num="03">
+        <span class="card-icon">▦</span>
+        <div class="card-title">Regulatory Capital</div>
+        <div class="card-desc">FRTB SA (P&amp;L Attribution Test, Spearman correlation), SA-CCR, SSFA, IRB RWA stress testing, K-ICS, and ICAAP stress capital buffer optimization.</div>
+        <div class="card-tags">
+          <span class="tag">FRTB SA</span><span class="tag">Basel III</span><span class="tag">SA-CCR</span>
+          <span class="tag">K-ICS</span><span class="tag">IRB</span>
+        </div>
+      </div>
+      <div class="expertise-card" data-num="04">
+        <span class="card-icon">△</span>
+        <div class="card-title">Quantitative ML Research</div>
+        <div class="card-desc">Black-Litterman SAA, Fama-French 6-factor models, Markov regime-switching, CVaR optimization, walk-forward validation, and ML-based risk models with interpretable AI.</div>
+        <div class="card-tags">
+          <span class="tag">Black-Litterman</span><span class="tag">CVaR</span><span class="tag">Fama-French</span>
+          <span class="tag">Regime Switching</span>
+        </div>
+      </div>
+      <div class="expertise-card" data-num="05">
+        <span class="card-icon">⊞</span>
+        <div class="card-title">Korean Market Systems</div>
+        <div class="card-desc">Deep institutional knowledge of Korean market microstructure: KOSPI futures cash-carry arbitrage, KSD fee structures, BOK intraday overdraft / policy loan mechanics, FSS regulations.</div>
+        <div class="card-tags">
+          <span class="tag">KOSPI</span><span class="tag">KSD</span><span class="tag">BOK</span>
+          <span class="tag">FSS</span><span class="tag">Cash&amp;Carry</span>
+        </div>
+      </div>
+      <div class="expertise-card" data-num="06">
+        <span class="card-icon">◉</span>
+        <div class="card-title">Credit Risk &amp; Scoring</div>
+        <div class="card-desc">CreditMetrics Monte Carlo simulation, IRB model validation, CSS (Credit Scoring System) development with SAS Viya AutoML integration and NICE credit bureau data.</div>
+        <div class="card-tags">
+          <span class="tag">CreditMetrics</span><span class="tag">Monte Carlo</span><span class="tag">IRB</span>
+          <span class="tag">SAS Viya</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ RESEARCH ═══ -->
+<section class="section-full" id="research">
+  <div class="section-inner">
+    <div class="section-label">Selected Research &amp; Projects</div>
+    <table class="research-table fade-up">
+      <thead>
+        <tr>
+          <th style="width:100px">Status</th>
+          <th>Title</th>
+          <th>Methodology</th>
+          <th style="width:80px">Year</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="r-status live">Live</span></td>
+          <td>
+            <div class="r-title">FRTB SA · P&amp;L Attribution Test Automation</div>
+            <div class="r-sub">Spearman correlation optimization · Murex Greek calibration · GREEN ZONE</div>
+          </td>
+          <td class="r-method">Python · Murex · Oracle · Basel IV</td>
+          <td style="color:var(--text2)">2026</td>
+        </tr>
+        <tr>
+          <td><span class="r-status live">Live</span></td>
+          <td>
+            <div class="r-title">FOREX21 PRL System — Partial Reuse Ledger</div>
+            <div class="r-sub">Reverse repo rehypothecation · BRD/FRD · Oracle PL/SQL · React simulation agent</div>
+          </td>
+          <td class="r-method">Oracle · PL/SQL · React · HTML</td>
+          <td style="color:var(--text2)">2025</td>
+        </tr>
+        <tr>
+          <td><span class="r-status pub">Published</span></td>
+          <td>
+            <div class="r-title">S&amp;P 500 Dual-Strategy Quant Research</div>
+            <div class="r-sub">Momentum Cascade + RAPM 7-Factor · Institutional-grade report</div>
+          </td>
+          <td class="r-method">Python · FactorModel · Word</td>
+          <td style="color:var(--text2)">2025</td>
+        </tr>
+        <tr>
+          <td><span class="r-status pub">Published</span></td>
+          <td>
+            <div class="r-title">SK Hynix ADR Capital Raising Analysis</div>
+            <div class="r-sub">GS/MS-level bilingual report · Damodaran CRP · DCF · Balance sheet reconciliation</div>
+          </td>
+          <td class="r-method">Python · Excel · DCF · Damodaran</td>
+          <td style="color:var(--text2)">2025</td>
+        </tr>
+        <tr>
+          <td><span class="r-status wip">In Progress</span></td>
+          <td>
+            <div class="r-title">ETF ML Allocation Model</div>
+            <div class="r-sub">Walk-forward validation · Risk parity enhancements · Multi-asset CVaR</div>
+          </td>
+          <td class="r-method">Python · Sklearn · CVaR · WFV</td>
+          <td style="color:var(--text2)">2026</td>
+        </tr>
+        <tr>
+          <td><span class="r-status wip">In Progress</span></td>
+          <td>
+            <div class="r-title">KRW/USD Exchange Rate Stress Modeling</div>
+            <div class="r-sub">Classical time series + AI hybrid pipeline · Google Colab · BOK data</div>
+          </td>
+          <td class="r-method">Python · ARIMA · LSTM · Stress</td>
+          <td style="color:var(--text2)">2026</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ STACK ═══ -->
+<section class="section-full" id="stack">
+  <div class="section-inner">
+    <div class="section-label">Technical Stack</div>
+    <div class="skills-layout fade-up">
+      <div>
+        <div class="skill-group">
+          <div class="skill-group-title">Quantitative &amp; Risk</div>
+          <div class="skill-item">
+            <div class="skill-name">Python / NumPy</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:97%"></div></div>
+            <div class="skill-pct">97%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Derivatives Pricing</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:95%"></div></div>
+            <div class="skill-pct">95%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Risk Modeling</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:93%"></div></div>
+            <div class="skill-pct">93%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">ML / Sklearn</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:88%"></div></div>
+            <div class="skill-pct">88%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">R / VBA</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:85%"></div></div>
+            <div class="skill-pct">85%</div>
+          </div>
+        </div>
+        <br>
+        <div class="skill-group">
+          <div class="skill-group-title">Regulatory Frameworks</div>
+          <div class="skill-item">
+            <div class="skill-name">FRTB SA</div>
+            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:96%"></div></div>
+            <div class="skill-pct">96%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Basel III / IV</div>
+            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:94%"></div></div>
+            <div class="skill-pct">94%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">SA-CCR / SSFA</div>
+            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:90%"></div></div>
+            <div class="skill-pct">90%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">K-ICS / ICAAP</div>
+            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:88%"></div></div>
+            <div class="skill-pct">88%</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group">
+          <div class="skill-group-title">Systems &amp; Infrastructure</div>
+          <div class="skill-item">
+            <div class="skill-name">Oracle / PL/SQL</div>
+            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:92%"></div></div>
+            <div class="skill-pct">92%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">FOREX21 / SAFE</div>
+            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:95%"></div></div>
+            <div class="skill-pct">95%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">KSD / MONET / KETI</div>
+            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:90%"></div></div>
+            <div class="skill-pct">90%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Murex</div>
+            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:82%"></div></div>
+            <div class="skill-pct">82%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Excel / VBA</div>
+            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:96%"></div></div>
+            <div class="skill-pct">96%</div>
+          </div>
+        </div>
+        <br>
+        <div class="skill-group">
+          <div class="skill-group-title">Research &amp; Communication</div>
+          <div class="skill-item">
+            <div class="skill-name">Korean / English</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:100%"></div></div>
+            <div class="skill-pct">100%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">Institutional Reports</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:95%"></div></div>
+            <div class="skill-pct">95%</div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-name">React / HTML/CSS</div>
+            <div class="skill-bar-wrap"><div class="skill-bar" style="width:80%"></div></div>
+            <div class="skill-pct">80%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CONTACT ═══ -->
+<section class="section-full" id="contact">
+  <div class="section-inner">
+    <div class="section-label">Contact &amp; Collaboration</div>
+    <div class="contact-grid fade-up">
+      <div class="contact-card">
+        <div class="contact-card-label">Institution</div>
+        <div class="contact-card-val">Citibank Korea</div>
+        <div class="contact-card-sub">FICC Derivatives &amp; Collateral Management</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-card-label">Research</div>
+        <div class="contact-card-val">Quantum Equity Research</div>
+        <div class="contact-card-sub">PhD Lee Hong Jae · Independent Quant Research</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-card-label">Expertise Areas</div>
+        <div class="contact-card-val">Derivatives · Collateral · ML Finance</div>
+        <div class="contact-card-sub">Open to academic collaboration &amp; consulting</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-card-label">Location</div>
+        <div class="contact-card-val">Seoul, Korea</div>
+        <div class="contact-card-sub">Korean Financial Markets · BOK · FSS ecosystem</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="footer-copy">© 2026 Lee Hong Jae · Quantum Equity Research · All rights reserved</div>
+  <div class="footer-build">System operational</div>
+</footer>
+
+<script>
+// ── TICKER DATA ──
+const tickers = [
+  { sym: 'USD/KRW', val: '1,342.50', chg: '+0.23%', up: true },
+  { sym: 'KOSPI', val: '2,687.34', chg: '+1.12%', up: true },
+  { sym: 'KOSDAQ', val: '891.22', chg: '-0.34%', up: false },
+  { sym: 'KTB 10Y', val: '3.245%', chg: '-0.02bps', up: false },
+  { sym: 'EUR/USD', val: '1.0847', chg: '+0.15%', up: true },
+  { sym: 'WTI', val: '82.14', chg: '+0.67%', up: true },
+  { sym: 'KOSPI200F', val: '354.20', chg: '+0.89%', up: true },
+  { sym: 'IRS 3Y KRW', val: '3.18%', chg: '-1bps', up: false },
+  { sym: 'USD/JPY', val: '154.32', chg: '-0.18%', up: false },
+  { sym: 'BOK Base', val: '3.50%', chg: 'HOLD', up: null },
+  { sym: 'KRW LIBOR 3M', val: '3.645%', chg: '+0.5bps', up: true },
+  { sym: 'CDS KR 5Y', val: '38.2bps', chg: '-1.1bps', up: false },
+];
+
+function buildTicker() {
+  const wrap = document.getElementById('ticker');
+  const doubled = [...tickers, ...tickers];
+  wrap.innerHTML = doubled.map(t => `
+    <span class="ticker-item">
+      <strong>${t.sym}</strong>
+      ${t.val}
+      <span class="chg" style="color:${t.up === true ? '#000' : t.up === false ? '#444' : '#333'}">${t.chg}</span>
+      <span class="sep">|</span>
+    </span>
+  `).join('');
+}
+buildTicker();
+
+// ── SPARKLINE ──
+function generateSpark() {
+  const pts = [];
+  let v = 30;
+  for (let i = 0; i < 40; i++) {
+    v += (Math.random() - 0.48) * 6;
+    v = Math.max(5, Math.min(55, v));
+    pts.push(v);
+  }
+  return pts;
+}
+
+function drawSpark() {
+  const vals = generateSpark();
+  const w = 380, h = 60;
+  const xStep = w / (vals.length - 1);
+  const coords = vals.map((v, i) => [i * xStep, h - v]);
+  const lineD = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const areaD = lineD + ` L${w},${h} L0,${h} Z`;
+  document.getElementById('spark-line').setAttribute('d', lineD);
+  document.getElementById('spark-path').setAttribute('d', areaD);
+}
+drawSpark();
+setInterval(drawSpark, 3000);
+
+// ── SCROLL ANIMATE ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ── SKILL BARS ANIMATE ──
+const skillObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.skill-bar').forEach(bar => {
+        const target = bar.style.width;
+        bar.style.width = '0';
+        requestAnimationFrame(() => {
+          bar.style.width = target;
+        });
+      });
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.skills-layout').forEach(el => skillObserver.observe(el));
+</script>
+</body>
+</html>
