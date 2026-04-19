@@ -3,67 +3,834 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lee Hong Jae · PhD · Quantitative Finance</title>
+<title>AIQuant Financial Engineering Research</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Cormorant+SC:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --silver: #f0f2f5;
-    --silver2: #e8eaed;
-    --silver3: #d4d8de;
-    --white: #ffffff;
-    --panel: #fafbfc;
-    --border: #d0d4da;
-    --border2: #b8bdc5;
-    --navy: #0a1628;
-    --navy2: #162040;
-    --navy3: #1e2d52;
-    --blue: #003366;
-    --gold: #8b6914;
-    --gold2: #b8920f;
-    --gold3: #d4a820;
-    --text: #1a1f2e;
-    --text2: #3d4a5c;
-    --text3: #6b7a8d;
-    --text4: #9aa5b4;
-    --green: #0d6e3a;
-    --red: #c0392b;
-    --font-serif: 'EB Garamond', serif;
-    --font-body: 'Source Sans 3', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+:root {
+  --bg:       #f2f3f5;
+  --bg2:      #eaecef;
+  --white:    #ffffff;
+  --panel:    #f8f9fa;
+  --border:   #d2d6dc;
+  --border2:  #b4bac4;
+  --navy:     #0b1d3a;
+  --navy2:    #152d56;
+  --gold:     #8a6500;
+  --gold2:    #b38b00;
+  --gold3:    #d4a800;
+  --text:     #111827;
+  --text2:    #374151;
+  --text3:    #6b7280;
+  --text4:    #9ca3af;
+  --green:    #0d6e3a;
+  --red:      #b91c1c;
+  --serif:    'Cormorant Garamond', 'Georgia', serif;
+  --serif-sc: 'Cormorant SC', 'Georgia', serif;
+  --body:     'Source Serif 4', 'Georgia', serif;
+  --mono:     'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* ── TOP BAR ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 34px;
+  background: var(--navy);
+  display: flex; align-items: center;
+  padding: 0 40px; gap: 28px;
+  z-index: 300;
+}
+.topbar-brand {
+  font-family: var(--serif-sc);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.85);
+  margin-right: auto;
+  white-space: nowrap;
+}
+.t-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px;
+  color: rgba(255,255,255,0.65);
+  white-space: nowrap;
+}
+.t-item .sym { color: rgba(255,255,255,0.35); font-size: 9px; }
+.t-item .val { color: rgba(255,255,255,0.9); }
+.up  { color: #4ade80; }
+.dn  { color: #f87171; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 34px; left: 0; right: 0;
+  height: 58px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 40px;
+  z-index: 299;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+.nav-logo {
+  margin-right: auto;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.nav-logo-main {
+  font-family: var(--serif-sc);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--navy);
+  line-height: 1;
+}
+.nav-logo-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.nav-links { display: flex; list-style: none; }
+.nav-links a {
+  display: block; height: 58px; line-height: 58px;
+  padding: 0 16px;
+  font-family: var(--serif-sc);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--text2);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.nav-links a:hover { color: var(--navy); border-bottom-color: var(--gold); }
+
+main { margin-top: 92px; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 448px;
+  min-height: 520px;
+}
+.hero-left {
+  padding: 68px 60px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 22px;
+  display: flex; align-items: center; gap: 14px;
+}
+.hero-eyebrow::before { content: ''; width: 28px; height: 1px; background: var(--gold); }
+.hero-name {
+  font-family: var(--serif);
+  font-size: clamp(34px, 4vw, 60px);
+  font-weight: 300;
+  line-height: 1.1;
+  color: var(--navy);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+.hero-name-ko {
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--text3);
+  letter-spacing: 0.14em;
+  margin-bottom: 28px;
+}
+.hero-rule { width: 52px; height: 1px; background: var(--gold); margin-bottom: 26px; }
+.hero-desc {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.9;
+  color: var(--text2);
+  max-width: 560px;
+  margin-bottom: 40px;
+}
+.hero-desc strong { color: var(--navy); font-weight: 600; }
+.hero-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 13px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  background: var(--bg);
+  cursor: default;
+  transition: all 0.2s;
+}
+.pill:hover { background: var(--navy); color: white; border-color: var(--navy); }
+
+/* ── MARKET PANEL ── */
+.hero-right { background: var(--panel); display: flex; flex-direction: column; }
+.mkt-header {
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.mkt-title {
+  font-family: var(--serif-sc);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text3);
+}
+.mkt-live {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--green);
+  font-weight: 400;
+  display: flex; align-items: center; gap: 5px;
+}
+.mkt-live::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+.mkt-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.mkt-tab {
+  flex: 1; padding: 9px 0;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  transition: all 0.2s;
+}
+.mkt-tab.active { color: var(--navy); border-bottom-color: var(--gold); }
+
+.chart-panels { flex: 1; padding: 16px 20px 12px; }
+.chart-panel { display: none; }
+.chart-panel.active { display: block; }
+.chart-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.chart-name { font-family: var(--serif-sc); font-size: 12px; color: var(--navy); letter-spacing: 0.06em; }
+.chart-chg  { font-family: var(--mono); font-size: 10px; margin-top: 3px; }
+.chart-val  { font-family: var(--mono); font-size: 16px; color: var(--navy); }
+canvas.mini { height: 86px !important; }
+
+.mkt-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; padding: 10px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+.mkt-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+}
+.mkt-card-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text4); margin-bottom: 3px; }
+.mkt-card-val { font-family: var(--mono); font-size: 13px; color: var(--navy); }
+.mkt-card-chg { font-family: var(--mono); font-size: 10px; }
+
+/* ── LAYOUT ── */
+.sec-white  { background: var(--white);  border-bottom: 1px solid var(--border); }
+.sec-silver { background: var(--bg);     border-bottom: 1px solid var(--border); }
+.sec-in { max-width: 1280px; margin: 0 auto; padding: 68px 40px; }
+.sec-head {
+  display: flex; align-items: baseline; gap: 16px;
+  margin-bottom: 44px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.sec-num  { font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: 0.2em; }
+.sec-title { font-family: var(--serif); font-size: 28px; font-weight: 400; color: var(--navy); letter-spacing: 0.01em; }
+
+/* ── EXPERTISE ── */
+.exp-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border);
+}
+.exp-card { background: var(--white); padding: 30px 24px; transition: background 0.2s; }
+.exp-card:hover { background: var(--bg); }
+.exp-num   { font-family: var(--mono); font-size: 9px; color: var(--text4); margin-bottom: 14px; }
+.exp-title { font-family: var(--serif); font-size: 17px; color: var(--navy); margin-bottom: 10px; font-weight: 400; }
+.exp-desc  { font-family: var(--body); font-size: 12px; color: var(--text2); line-height: 1.75; font-weight: 300; margin-bottom: 18px; }
+.exp-tags  { display: flex; flex-wrap: wrap; gap: 5px; }
+.exp-tag   { font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; background: var(--bg2); color: var(--text3); border: 1px solid var(--border); }
+
+/* ── CAREER ── */
+.c-tbl { width: 100%; border-collapse: collapse; }
+.c-tbl th {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text4); padding: 0 16px 14px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.c-tbl th:first-child { padding-left: 0; }
+.c-tbl td { padding: 18px 16px; border-bottom: 1px solid var(--bg2); vertical-align: top; }
+.c-tbl td:first-child { padding-left: 0; }
+.c-tbl tr:last-child td { border-bottom: none; }
+.c-tbl tr:hover td { background: var(--bg); }
+.c-period { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; }
+.c-role { font-family: var(--serif); font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 3px; }
+.c-org  { font-family: var(--body); font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.c-det  { font-family: var(--body); font-size: 11px; color: var(--text3); font-style: italic; }
+.bdg {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 9px; border: 1px solid;
+}
+.bdg-pl  { border-color: var(--navy2); color: var(--navy2); }
+.bdg-pm  { border-color: var(--gold);  color: var(--gold);  }
+.bdg-dir { border-color: var(--green); color: var(--green); }
+
+/* ── BOOKS ── */
+.books { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 36px; }
+.book  { background: var(--navy); padding: 30px; }
+.book-yr  { font-family: var(--mono); font-size: 10px; color: var(--gold3); margin-bottom: 12px; }
+.book-ttl { font-family: var(--serif); font-size: 17px; font-style: italic; color: white; line-height: 1.4; margin-bottom: 10px; }
+.book-pub { font-family: var(--body); font-size: 11px; color: rgba(255,255,255,0.35); }
+
+/* ── PAPERS ── */
+.pubs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pub  { background: var(--white); border: 1px solid var(--border); padding: 24px; transition: box-shadow 0.2s; }
+.pub:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
+.pub-yr  { font-family: var(--mono); font-size: 10px; color: var(--gold); margin-bottom: 8px; }
+.pub-ttl { font-family: var(--serif); font-size: 14px; font-style: italic; color: var(--navy); line-height: 1.5; margin-bottom: 8px; }
+.pub-jnl { font-family: var(--body); font-size: 11px; color: var(--text3); }
+.pub-award { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+.pub-award::before { content: '★'; }
+
+/* ── EDU ── */
+.edu-row { display: flex; gap: 36px; padding: 24px 0; border-bottom: 1px solid var(--bg2); }
+.edu-row:last-child { border-bottom: none; }
+.edu-period { font-family: var(--mono); font-size: 10px; color: var(--text3); width: 110px; flex-shrink: 0; padding-top: 5px; }
+.edu-deg  { font-family: var(--serif); font-size: 19px; font-weight: 400; color: var(--navy); margin-bottom: 4px; }
+.edu-sch  { font-family: var(--body); font-size: 13px; color: var(--text2); }
+
+/* ── SKILLS ── */
+.sk-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 44px; margin-top: 44px; }
+.sk-group-ttl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text4); margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.sk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sk-lbl { font-family: var(--body); font-size: 12px; font-weight: 300; color: var(--text2); width: 130px; flex-shrink: 0; }
+.sk-track { flex: 1; height: 1px; background: var(--border2); }
+.sk-fill { height: 100%; background: var(--navy); transition: width 1.4s cubic-bezier(0.16,1,0.3,1); }
+.sk-fill.gold { background: var(--gold); }
+.sk-pct { font-family: var(--mono); font-size: 10px; color: var(--text4); width: 28px; text-align: right; }
+
+/* ── CONTACT ── */
+.con-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); margin-top: 40px;
+}
+.con-card { background: var(--white); padding: 26px; transition: background 0.2s; }
+.con-card:hover { background: var(--bg); }
+.con-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text4); margin-bottom: 8px; }
+.con-val { font-family: var(--serif); font-size: 15px; color: var(--navy); margin-bottom: 4px; }
+.con-sub { font-family: var(--body); font-size: 11px; color: var(--text3); }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--navy);
+  padding: 30px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.f-l { font-family: var(--serif); font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.55); }
+.f-r { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.28); }
+
+/* ── ANIMATE ── */
+.fade-up { opacity: 0; transform: translateY(14px); transition: opacity 0.65s ease, transform 0.65s ease; }
+.fade-up.visible { opacity: 1; transform: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-right { display: none; }
+  .exp-grid, .pubs, .books, .sk-cols { grid-template-columns: 1fr; }
+  .con-grid { grid-template-columns: 1fr 1fr; }
+  .sec-in { padding: 48px 24px; }
+  .hero-left { padding: 48px 24px; }
+  nav, .topbar { padding: 0 20px; }
+  .nav-links a { padding: 0 10px; font-size: 10px; }
+  footer { flex-direction: column; gap: 12px; padding: 24px; text-align: center; }
+  .edu-row { flex-direction: column; gap: 6px; }
+  .t-item:nth-child(n+4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">AIQuant Financial Engineering Research</div>
+  <div id="tb" style="display:flex;gap:24px;"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-main">AIQuant Financial Engineering Research</div>
+    <div class="nav-logo-sub">Lee Hong Jae · PhD · 이홍재</div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#expertise">Expertise</a></li>
+    <li><a href="#career">Experience</a></li>
+    <li><a href="#publications">Research</a></li>
+    <li><a href="#education">Education</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">PhD · Quantitative Finance · Financial Engineering</div>
+    <h1 class="hero-name">Lee Hong Jae</h1>
+    <div class="hero-name-ko">이홍재 &nbsp;·&nbsp; 李 洪 載 &nbsp;·&nbsp; Charles Lee</div>
+    <div class="hero-rule"></div>
+    <p class="hero-desc">
+      Senior quantitative finance professional with a <strong>PhD in Business Administration (Finance)</strong>
+      from Kyung Hee University. Two decades of institutional experience spanning
+      <strong>risk management systems</strong>, <strong>asset allocation modeling</strong>,
+      <strong>derivatives pricing</strong>, and <strong>AI-driven financial analytics</strong>.
+      Project leadership across PwC Samil, KPMG, Ernst &amp; Young, Deloitte, and Korea Exchange (KRX).
+    </p>
+    <div class="hero-pills">
+      <span class="pill">Black-Litterman</span>
+      <span class="pill">CreditMetrics</span>
+      <span class="pill">Basel II / III</span>
+      <span class="pill">VaR / CVaR</span>
+      <span class="pill">Derivatives Pricing</span>
+      <span class="pill">Deep Learning</span>
+      <span class="pill">ALM / SAA</span>
+      <span class="pill">Monte Carlo</span>
+    </div>
+  </div>
+
+  <!-- MARKET PANEL -->
+  <div class="hero-right">
+    <div class="mkt-header">
+      <div class="mkt-title">Global Markets</div>
+      <div class="mkt-live">Simulated Live</div>
+    </div>
+    <div class="mkt-tabs">
+      <button class="mkt-tab active" onclick="switchTab(0)">KOSPI</button>
+      <button class="mkt-tab" onclick="switchTab(1)">S&amp;P 500</button>
+      <button class="mkt-tab" onclick="switchTab(2)">NASDAQ</button>
+      <button class="mkt-tab" onclick="switchTab(3)">USD/KRW</button>
+    </div>
+    <div class="chart-panels">
+      <div class="chart-panel active">
+        <div class="chart-info"><div><div class="chart-name">KOSPI Index</div><div class="chart-chg up">▲ +1.24%</div></div><div class="chart-val">2,687.34</div></div>
+        <canvas id="c0" class="mini"></canvas>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-info"><div><div class="chart-name">S&amp;P 500</div><div class="chart-chg up">▲ +0.87%</div></div><div class="chart-val">5,218.60</div></div>
+        <canvas id="c1" class="mini"></canvas>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-info"><div><div class="chart-name">NASDAQ Composite</div><div class="chart-chg dn">▼ −0.34%</div></div><div class="chart-val">16,340.87</div></div>
+        <canvas id="c2" class="mini"></canvas>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-info"><div><div class="chart-name">USD / KRW</div><div class="chart-chg dn">▼ −0.18%</div></div><div class="chart-val">1,342.50</div></div>
+        <canvas id="c3" class="mini"></canvas>
+      </div>
+    </div>
+    <div class="mkt-grid">
+      <div class="mkt-card"><div class="mkt-card-lbl">EUR/USD</div><div class="mkt-card-val">1.0847</div><div class="mkt-card-chg up">▲ +0.15%</div></div>
+      <div class="mkt-card"><div class="mkt-card-lbl">SPY ETF</div><div class="mkt-card-val">$519.42</div><div class="mkt-card-chg up">▲ +0.91%</div></div>
+      <div class="mkt-card"><div class="mkt-card-lbl">QQQ ETF</div><div class="mkt-card-val">$440.18</div><div class="mkt-card-chg dn">▼ −0.28%</div></div>
+      <div class="mkt-card"><div class="mkt-card-lbl">KTB 10Y</div><div class="mkt-card-val">3.245%</div><div class="mkt-card-chg dn">▼ −2bps</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERTISE -->
+<div class="sec-silver" id="expertise">
+  <div class="sec-in">
+    <div class="sec-head fade-up">
+      <div class="sec-num">01</div>
+      <h2 class="sec-title">Areas of Expertise</h2>
+    </div>
+    <div class="exp-grid fade-up">
+      <div class="exp-card">
+        <div class="exp-num">01 · Risk Management</div>
+        <div class="exp-title">Quantitative Risk Systems</div>
+        <div class="exp-desc">Settlement risk, market VaR, credit risk measurement using CreditMetrics and KMV EDF. Enterprise risk systems for BC Card, Woori Bank, KRX, and Korea Post Insurance.</div>
+        <div class="exp-tags"><span class="exp-tag">VaR</span><span class="exp-tag">Extreme VaR</span><span class="exp-tag">CreditMetrics</span><span class="exp-tag">KMV</span><span class="exp-tag">Copula</span></div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-num">02 · Asset Allocation</div>
+        <div class="exp-title">Strategic Asset Allocation</div>
+        <div class="exp-desc">Black-Litterman optimization, Risk-Budgeting, Mean-Variance, and ALM-based SAA for pension funds. Systems delivered for NH Mutual Finance and Public School Pension Fund.</div>
+        <div class="exp-tags"><span class="exp-tag">Black-Litterman</span><span class="exp-tag">MVO</span><span class="exp-tag">Risk Budgeting</span><span class="exp-tag">ALM</span></div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-num">03 · Derivatives Pricing</div>
+        <div class="exp-title">Options &amp; Structured Products</div>
+        <div class="exp-desc">Pricing via CGMY, Merton Jump-Diffusion, Variance Gamma, and Neural Network deep hedging. Barrier options, payers' swaption replication, Cholesky Monte Carlo simulation.</div>
+        <div class="exp-tags"><span class="exp-tag">Black-Scholes</span><span class="exp-tag">CGMY</span><span class="exp-tag">Swaption</span><span class="exp-tag">Monte Carlo</span></div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-num">04 · Credit Risk</div>
+        <div class="exp-title">Basel II IRB Implementation</div>
+        <div class="exp-desc">CreditManager™ (MSCI) deployment for Woori Bank and Kyongnam Bank. Stress test models via Credit Cycle Index, Copula-based first-to-default CDX pricing, IDP calculation.</div>
+        <div class="exp-tags"><span class="exp-tag">Basel II</span><span class="exp-tag">IRB</span><span class="exp-tag">CreditManager</span><span class="exp-tag">Stress Testing</span></div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-num">05 · AI &amp; Machine Learning</div>
+        <div class="exp-title">ML-Driven Financial Analytics</div>
+        <div class="exp-desc">Stock prediction via Random Forest, XGBoost, LSTM, GRU, Transformer, and GNN architectures. Portfolio deep hedging using SNN/RNN. FinBERT sentiment analysis and Altman Z-Score ML hybrids.</div>
+        <div class="exp-tags"><span class="exp-tag">LSTM</span><span class="exp-tag">XGBoost</span><span class="exp-tag">Transformer</span><span class="exp-tag">GNN</span><span class="exp-tag">FinBERT</span></div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-num">06 · Corporate Valuation</div>
+        <div class="exp-title">Valuation &amp; Capital Structure</div>
+        <div class="exp-desc">WACC/APV by Grinblatt-Titman &amp; Miles-Ezzell, EVA, DCF automation, MM optimal capital structure, CAPM/Hamada beta analysis. Long-term financial stability consulting for Korea Hydro &amp; Nuclear Power.</div>
+        <div class="exp-tags"><span class="exp-tag">DCF</span><span class="exp-tag">EVA</span><span class="exp-tag">WACC</span><span class="exp-tag">CAPM</span><span class="exp-tag">APV</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAREER -->
+<div class="sec-white" id="career">
+  <div class="sec-in">
+    <div class="sec-head fade-up">
+      <div class="sec-num">02</div>
+      <h2 class="sec-title">Professional Experience</h2>
+    </div>
+    <table class="c-tbl fade-up">
+      <thead>
+        <tr>
+          <th style="width:96px">Period</th>
+          <th>Project &amp; Role</th>
+          <th style="width:70px">Title</th>
+          <th>Client</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="c-period">2021</div></td>
+          <td><div class="c-role">Coupang Finance — FSS Licensing Approval</div><div class="c-org">KPMG</div><div class="c-det">Liquidity risk &amp; ALM management plans, business strategy documentation</div></td>
+          <td><span class="bdg bdg-pl">PL</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">Coupang</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2019</div></td>
+          <td><div class="c-role">Asset Allocation — Black-Litterman &amp; Performance Evaluation</div><div class="c-org">Ernst &amp; Young</div><div class="c-det">SAA measurement, Black-Litterman &amp; Risk-Budgeting optimization</div></td>
+          <td><span class="bdg bdg-pl">PL</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">NH Mutual Finance</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2016</div></td>
+          <td><div class="c-role">Credit Risk Measurement System</div><div class="c-org">Deloitte &amp; Two L</div><div class="c-det">CreditManager (MSCI), Credit Cycle Index stress tests, KMV EDF, Copula methodology</div></td>
+          <td><span class="bdg bdg-pl">PL</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">NH Insurance</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2013–2014</div></td>
+          <td><div class="c-role">CEO &amp; Executive Director — QuantMatrix Platform</div><div class="c-org">NEOPM</div><div class="c-det">Stock portfolio system, price forecasting, financial analysis &amp; valuation automation</div></td>
+          <td><span class="bdg bdg-dir">CEO</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">NEOPM / KISDI</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2011</div></td>
+          <td><div class="c-role">Asset Allocation — Public School Pension Fund</div><div class="c-org">KPMG (Freelance)</div><div class="c-det">ALM-based SAA, actuarial funded-ratio models, MVO / Black-Litterman / Risk-Budgeting</div></td>
+          <td><span class="bdg">Advisor</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">Public School Pension</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2009</div></td>
+          <td><div class="c-role">Settlement Risk Measurement — Korea Exchange</div><div class="c-org">PwC Samil</div><div class="c-det">Market VaR, Extreme VaR (GPD/GEV), MSC VaR, RAAS/RADARS/RAMS, NCR methodology</div></td>
+          <td><span class="bdg bdg-pm">PM</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">KRX</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2008–2009</div></td>
+          <td><div class="c-role">Director — Enterprise Risk &amp; Regulatory Projects</div><div class="c-org">PwC Samil</div><div class="c-det">BC Card ERM/BCP, Korea Post Insurance RAAS, Scholarship Foundation risk system</div></td>
+          <td><span class="bdg bdg-dir">Dir</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">Multiple</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2006–2007</div></td>
+          <td><div class="c-role">Basel II Credit Risk — CreditManager™</div><div class="c-org">Korea Risk Management (KRM)</div><div class="c-det">IRB economic capital, OPMS design, Hana Bank MtM &amp; Conditional VaR methodology</div></td>
+          <td><span class="bdg bdg-pm">PM</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">Woori / Kyongnam / Hana Bank</td>
+        </tr>
+        <tr>
+          <td><div class="c-period">2014–2017</div></td>
+          <td><div class="c-role">CEO — Quantum Fund Holdings / Quantum Asset Korea</div><div class="c-org">Independent</div><div class="c-det">AI-driven investment strategies, quantitative research, fintech consulting</div></td>
+          <td><span class="bdg bdg-dir">CEO</span></td>
+          <td style="font-size:12px;color:var(--text2);font-family:var(--body)">Proprietary</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PUBLICATIONS -->
+<div class="sec-silver" id="publications">
+  <div class="sec-in">
+    <div class="sec-head fade-up">
+      <div class="sec-num">03</div>
+      <h2 class="sec-title">Books &amp; Selected Publications</h2>
+    </div>
+    <div class="books fade-up">
+      <div class="book">
+        <div class="book-yr">2003 · Kyung Moon Publishing</div>
+        <div class="book-ttl">Financial Engineering — Simulation using Excel, VB, and Numerical Analysis</div>
+        <div class="book-pub">Kyung Moon Publishing Co.</div>
+      </div>
+      <div class="book">
+        <div class="book-yr">2005 · Kyung Moon Publishing</div>
+        <div class="book-ttl">Financial Time-Series Analysis Using EViews</div>
+        <div class="book-pub">Kyung Moon Publishing Co.</div>
+      </div>
+    </div>
+    <div class="pubs fade-up">
+      <div class="pub">
+        <div class="pub-yr">2023</div>
+        <div class="pub-ttl">Option Pricing and Portfolio Deep Hedging Using Neural Networks — Comparative Analysis of SNN and RNN</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 20, No. 5</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2022</div>
+        <div class="pub-ttl">Option Pricing Using Classical Tempered Stable Levy Process (CGMY Model) with Fourier Transform</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 19, No. 5</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2021</div>
+        <div class="pub-ttl">Market Risk Analysis Using Modified BARRA Beta Factor Model — t-Copula VaR &amp; Expected Shortfall</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 18, No. 5</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2020</div>
+        <div class="pub-ttl">Risk Budgeting Using Black-Litterman Model: Combining Investor Views with Market Equilibrium</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 17, No. 5</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2019</div>
+        <div class="pub-ttl">Effect of Tau and Lambda on Industrial Index Portfolio in Black-Litterman Inverse Optimization</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 16, No. 4</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2018</div>
+        <div class="pub-ttl">Leverage Effects and Asymmetric Volatility Spillover Between VIX and S&amp;P500 Using DCC-GARCH</div>
+        <div class="pub-jnl">Global Management Journal, Vol. 15, No. 5</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2004</div>
+        <div class="pub-ttl">Effective Financial Strategy and Value-Based Management for Korea Railway Business</div>
+        <div class="pub-jnl">Ministry of Railways</div>
+        <div class="pub-award">Best Paper Award</div>
+      </div>
+      <div class="pub">
+        <div class="pub-yr">2002</div>
+        <div class="pub-ttl">Valuation of Listed Companies Using WACC and APV by Grinblatt-Titman and Miles-Ezzell</div>
+        <div class="pub-jnl">Korea Enterprise Evaluation Institute</div>
+        <div class="pub-award">Best Paper Award · SMBA Sponsored</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDUCATION -->
+<div class="sec-white" id="education">
+  <div class="sec-in">
+    <div class="sec-head fade-up">
+      <div class="sec-num">04</div>
+      <h2 class="sec-title">Education</h2>
+    </div>
+    <div class="fade-up">
+      <div class="edu-row">
+        <div class="edu-period">1997 – 2001</div>
+        <div><div class="edu-deg">PhD in Business Administration (Finance)</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+      </div>
+      <div class="edu-row">
+        <div class="edu-period">1993 – 1997</div>
+        <div><div class="edu-deg">Master's in Business Administration (Finance)</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+      </div>
+      <div class="edu-row">
+        <div class="edu-period">1985 – 1992</div>
+        <div><div class="edu-deg">Bachelor's in Business Administration</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+      </div>
+    </div>
+    <div class="sk-cols fade-up">
+      <div>
+        <div class="sk-group-ttl">Quantitative Methods</div>
+        <div class="sk-row"><div class="sk-lbl">Python / ML</div><div class="sk-track"><div class="sk-fill" style="width:96%"></div></div><div class="sk-pct">96%</div></div>
+        <div class="sk-row"><div class="sk-lbl">R / EViews / GAUSS</div><div class="sk-track"><div class="sk-fill" style="width:92%"></div></div><div class="sk-pct">92%</div></div>
+        <div class="sk-row"><div class="sk-lbl">MATLAB</div><div class="sk-track"><div class="sk-fill" style="width:88%"></div></div><div class="sk-pct">88%</div></div>
+        <div class="sk-row"><div class="sk-lbl">SPSS / SAS</div><div class="sk-track"><div class="sk-fill" style="width:85%"></div></div><div class="sk-pct">85%</div></div>
+        <div class="sk-row"><div class="sk-lbl">C++ / Java</div><div class="sk-track"><div class="sk-fill" style="width:78%"></div></div><div class="sk-pct">78%</div></div>
+      </div>
+      <div>
+        <div class="sk-group-ttl">Risk &amp; Valuation</div>
+        <div class="sk-row"><div class="sk-lbl">VaR / CVaR</div><div class="sk-track"><div class="sk-fill gold" style="width:97%"></div></div><div class="sk-pct">97%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Black-Litterman</div><div class="sk-track"><div class="sk-fill gold" style="width:95%"></div></div><div class="sk-pct">95%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Derivatives Pricing</div><div class="sk-track"><div class="sk-fill gold" style="width:93%"></div></div><div class="sk-pct">93%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Basel II / III</div><div class="sk-track"><div class="sk-fill gold" style="width:91%"></div></div><div class="sk-pct">91%</div></div>
+        <div class="sk-row"><div class="sk-lbl">DCF / EVA / WACC</div><div class="sk-track"><div class="sk-fill gold" style="width:94%"></div></div><div class="sk-pct">94%</div></div>
+      </div>
+      <div>
+        <div class="sk-group-ttl">Systems &amp; AI</div>
+        <div class="sk-row"><div class="sk-lbl">Excel / VBA</div><div class="sk-track"><div class="sk-fill" style="width:98%"></div></div><div class="sk-pct">98%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Deep Learning</div><div class="sk-track"><div class="sk-fill" style="width:87%"></div></div><div class="sk-pct">87%</div></div>
+        <div class="sk-row"><div class="sk-lbl">HTML / CSS / JS</div><div class="sk-track"><div class="sk-fill" style="width:82%"></div></div><div class="sk-pct">82%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Flask / Django</div><div class="sk-track"><div class="sk-fill" style="width:75%"></div></div><div class="sk-pct">75%</div></div>
+        <div class="sk-row"><div class="sk-lbl">ChatGPT API / LLM</div><div class="sk-track"><div class="sk-fill" style="width:90%"></div></div><div class="sk-pct">90%</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT -->
+<div class="sec-silver" id="contact">
+  <div class="sec-in">
+    <div class="sec-head fade-up">
+      <div class="sec-num">05</div>
+      <h2 class="sec-title">Contact</h2>
+    </div>
+    <div class="con-grid fade-up">
+      <div class="con-card"><div class="con-lbl">Email</div><div class="con-val">hongjaelee77@gmail.com</div><div class="con-sub">Primary contact</div></div>
+      <div class="con-card"><div class="con-lbl">Phone</div><div class="con-val">+82 10-5838-4938</div><div class="con-sub">Korea · KST (UTC+9)</div></div>
+      <div class="con-card"><div class="con-lbl">Location</div><div class="con-val">Seoul, Korea</div><div class="con-sub">Gangdong-gu, Godeok-dong</div></div>
+      <div class="con-card"><div class="con-lbl">Research</div><div class="con-val">AIQuant FER</div><div class="con-sub">Open to collaboration</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <div class="f-l">AIQuant Financial Engineering Research &nbsp;·&nbsp; Lee Hong Jae, PhD</div>
+  <div class="f-r">© 2026 · Seoul, Korea</div>
+</footer>
+
+<script>
+// TOP BAR
+const mkts = [
+  {sym:'KOSPI',   val:'2,687.34', chg:'+1.24%', up:true},
+  {sym:'S&P500',  val:'5,218.60', chg:'+0.87%', up:true},
+  {sym:'NASDAQ',  val:'16,340',   chg:'-0.34%', up:false},
+  {sym:'USD/KRW', val:'1,342.5',  chg:'-0.18%', up:false},
+  {sym:'SPY',     val:'$519.42',  chg:'+0.91%', up:true},
+];
+document.getElementById('tb').innerHTML = mkts.map(m=>`
+  <div class="t-item">
+    <span class="sym">${m.sym}</span>
+    <span class="val">${m.val}</span>
+    <span class="${m.up?'up':'dn'}">${m.chg}</span>
+  </div>`).join('');
+
+// CHARTS
+const cfg = [
+  {base:2650, amp:55,  color:'#0b1d3a'},
+  {base:5100, amp:140, color:'#003366'},
+  {base:16200,amp:280, color:'#8a6500'},
+  {base:1330, amp:18,  color:'#0d6e3a'},
+];
+const charts = [];
+function genPts(base,amp,n=32){
+  let v=base,pts=[];
+  for(let i=0;i<n;i++){
+    v+=(Math.random()-0.48)*amp;
+    v=Math.max(base*0.97,Math.min(base*1.03,v));
+    pts.push(+v.toFixed(2));
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body { background: var(--silver); color: var(--text); font-family: var(--font-body); font-size: 14px; line-height: 1.6; overflow-x: hidden; }
-  ::-webkit-scrollbar { width: 5px; }
-  ::-webkit-scrollbar-track { background: var(--silver2); }
-  ::-webkit-scrollbar-thumb { background: var(--border2); }
+  return pts;
+}
+cfg.forEach((d,i)=>{
+  const cv=document.getElementById('c'+i);
+  if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,86);
+  g.addColorStop(0,d.color+'28');
+  g.addColorStop(1,d.color+'00');
+  charts[i]=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:Array.from({length:32},(_,j)=>j),
+      datasets:[{data:genPts(d.base,d.amp),borderColor:d.color,borderWidth:1.5,backgroundColor:g,fill:true,tension:0.4,pointRadius:0}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}},
+      animation:{duration:600}
+    }
+  });
+});
+setInterval(()=>{
+  charts.forEach((ch,i)=>{
+    if(!ch)return;
+    ch.data.datasets[0].data=genPts(cfg[i].base,cfg[i].amp);
+    ch.update('none');
+  });
+},3500);
 
-  /* TOP BAR */
-  .topbar { background: var(--navy); height: 36px; display: flex; align-items: center; padding: 0 40px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; gap: 16px; }
-  .topbar-brand { font-family: var(--font-serif); font-size: 13px; color: rgba(255,255,255,0.85); margin-right: auto; }
-  .topbar-item { font-size: 10px; font-family: var(--font-mono); color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 5px; }
-  .topbar-item .sym { color: rgba(255,255,255,0.38); font-size: 9px; }
-  .topbar-item .val { color: rgba(255,255,255,0.9); }
-  .chg-up { color: #4ade80; }
-  .chg-dn { color: #f87171; }
+function switchTab(idx){
+  document.querySelectorAll('.mkt-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.chart-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+}
 
-  /* NAV */
-  nav { position: fixed; top: 36px; left: 0; right: 0; height: 56px; background: var(--white); border-bottom: 1px solid var(--border); z-index: 199; display: flex; align-items: center; padding: 0 40px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  .nav-logo { font-family: var(--font-serif); font-size: 18px; color: var(--navy); margin-right: auto; }
-  .nav-logo span { color: var(--gold); }
-  .nav-links { display: flex; list-style: none; }
-  .nav-links a { display: block; padding: 0 16px; height: 56px; line-height: 56px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); text-decoration: none; border-bottom: 2px solid transparent; transition: all 0.2s; }
-  .nav-links a:hover { color: var(--navy); border-bottom-color: var(--gold); }
+// SCROLL ANIMATE
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:0.08});
+document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
 
-  main { margin-top: 92px; }
-
-  /* HERO */
-  .hero { background: var(--white); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 460px; min-height: 500px; }
-  .hero-left { padding: 64px 56px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
-  .hero-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
-  .hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--gold); }
+// SKILL BARS
+const skObs=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.sk-fill').forEach(b=>{
+        const w=b.style.width;b.style.width='0';
+        requestAnimationFrame(()=>{b.style.width=w;});
+      });
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
+</script>
+</body>
+</html>
   .hero-name { font-family: var(--font-serif); font-size: clamp(36px, 4vw, 62px); font-weight: 500; line-height: 1.08; color: var(--navy); margin-bottom: 6px; }
   .hero-name-ko { font-size: 14px; color: var(--text3); margin-bottom: 24px; letter-spacing: 0.1em; font-weight: 300; }
   .hero-rule { width: 48px; height: 2px; background: var(--gold); margin-bottom: 24px; }
@@ -762,42 +1529,7 @@ document.querySelectorAll('.skills-cols').forEach(el=>skObs.observe(el));
   .hero-tag {
     font-size: 10px;
     letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--orange);
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .hero-tag::before {
-    content: '';
-    width: 32px;
-    height: 1px;
-    background: var(--orange);
-  }
 
-  .hero-name {
-    font-family: var(--font-serif);
-    font-size: clamp(42px, 5vw, 72px);
-    font-weight: 700;
-    line-height: 1.05;
-    color: var(--white);
-    margin-bottom: 8px;
-    letter-spacing: -0.02em;
-  }
-
-  .hero-name-ko {
-    font-family: var(--font-sans);
-    font-size: 18px;
-    font-weight: 300;
-    color: var(--text2);
-    margin-bottom: 32px;
-    letter-spacing: 0.1em;
-  }
-
-  .hero-title {
-    font-size: 11px;
-    font-weight: 500;
     letter-spacing: 0.08em;
     color: var(--cyan);
     margin-bottom: 20px;
@@ -1477,99 +2209,7 @@ document.querySelectorAll('.skills-cols').forEach(el=>skObs.observe(el));
             <div class="skill-name">Risk Modeling</div>
             <div class="skill-bar-wrap"><div class="skill-bar" style="width:93%"></div></div>
             <div class="skill-pct">93%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">ML / Sklearn</div>
-            <div class="skill-bar-wrap"><div class="skill-bar" style="width:88%"></div></div>
-            <div class="skill-pct">88%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">R / VBA</div>
-            <div class="skill-bar-wrap"><div class="skill-bar" style="width:85%"></div></div>
-            <div class="skill-pct">85%</div>
-          </div>
-        </div>
-        <br>
-        <div class="skill-group">
-          <div class="skill-group-title">Regulatory Frameworks</div>
-          <div class="skill-item">
-            <div class="skill-name">FRTB SA</div>
-            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:96%"></div></div>
-            <div class="skill-pct">96%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">Basel III / IV</div>
-            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:94%"></div></div>
-            <div class="skill-pct">94%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">SA-CCR / SSFA</div>
-            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:90%"></div></div>
-            <div class="skill-pct">90%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">K-ICS / ICAAP</div>
-            <div class="skill-bar-wrap"><div class="skill-bar cyan" style="width:88%"></div></div>
-            <div class="skill-pct">88%</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="skill-group">
-          <div class="skill-group-title">Systems &amp; Infrastructure</div>
-          <div class="skill-item">
-            <div class="skill-name">Oracle / PL/SQL</div>
-            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:92%"></div></div>
-            <div class="skill-pct">92%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">FOREX21 / SAFE</div>
-            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:95%"></div></div>
-            <div class="skill-pct">95%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">KSD / MONET / KETI</div>
-            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:90%"></div></div>
-            <div class="skill-pct">90%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">Murex</div>
-            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:82%"></div></div>
-            <div class="skill-pct">82%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">Excel / VBA</div>
-            <div class="skill-bar-wrap"><div class="skill-bar green" style="width:96%"></div></div>
-            <div class="skill-pct">96%</div>
-          </div>
-        </div>
-        <br>
-        <div class="skill-group">
-          <div class="skill-group-title">Research &amp; Communication</div>
-          <div class="skill-item">
-            <div class="skill-name">Korean / English</div>
-            <div class="skill-bar-wrap"><div class="skill-bar" style="width:100%"></div></div>
-            <div class="skill-pct">100%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">Institutional Reports</div>
-            <div class="skill-bar-wrap"><div class="skill-bar" style="width:95%"></div></div>
-            <div class="skill-pct">95%</div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-name">React / HTML/CSS</div>
-            <div class="skill-bar-wrap"><div class="skill-bar" style="width:80%"></div></div>
-            <div class="skill-pct">80%</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- ═══ CONTACT ═══ -->
-<section class="section-full" id="contact">
-  <div class="section-inner">
     <div class="section-label">Contact &amp; Collaboration</div>
     <div class="contact-grid fade-up">
       <div class="contact-card">
@@ -1631,60 +2271,4 @@ function buildTicker() {
       <span class="sep">|</span>
     </span>
   `).join('');
-}
-buildTicker();
 
-// ── SPARKLINE ──
-function generateSpark() {
-  const pts = [];
-  let v = 30;
-  for (let i = 0; i < 40; i++) {
-    v += (Math.random() - 0.48) * 6;
-    v = Math.max(5, Math.min(55, v));
-    pts.push(v);
-  }
-  return pts;
-}
-
-function drawSpark() {
-  const vals = generateSpark();
-  const w = 380, h = 60;
-  const xStep = w / (vals.length - 1);
-  const coords = vals.map((v, i) => [i * xStep, h - v]);
-  const lineD = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-  const areaD = lineD + ` L${w},${h} L0,${h} Z`;
-  document.getElementById('spark-line').setAttribute('d', lineD);
-  document.getElementById('spark-path').setAttribute('d', areaD);
-}
-drawSpark();
-setInterval(drawSpark, 3000);
-
-// ── SCROLL ANIMATE ──
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-    }
-  });
-}, { threshold: 0.1 });
-
-document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
-
-// ── SKILL BARS ANIMATE ──
-const skillObserver = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.querySelectorAll('.skill-bar').forEach(bar => {
-        const target = bar.style.width;
-        bar.style.width = '0';
-        requestAnimationFrame(() => {
-          bar.style.width = target;
-        });
-      });
-    }
-  });
-}, { threshold: 0.3 });
-document.querySelectorAll('.skills-layout').forEach(el => skillObserver.observe(el));
-</script>
-</body>
-</html>
