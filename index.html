@@ -535,15 +535,15 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
     </div>
     <div class="charts-grid">
       <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val" id="val-c0">로딩중...</div><div class="chart-box-chg" id="chg-c0">--</div><canvas id="c0" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">S&amp;P 500</div><div class="chart-box-val" id="val-c1">로딩중...</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">S&amp;P 500 Index</div><div class="chart-box-val" id="val-c1">로딩중...</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
       <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val" id="val-c2">로딩중...</div><div class="chart-box-chg" id="chg-c2">--</div><canvas id="c2" class="cbox"></canvas></div>
       <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val" id="val-c3">로딩중...</div><div class="chart-box-chg" id="chg-c3">--</div><canvas id="c3" class="cbox"></canvas></div>
     </div>
     <div class="rates-grid">
       <div class="rate-card" id="r-eurusd"><div class="rate-lbl">EUR/USD</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
       <div class="rate-card" id="r-usdjpy"><div class="rate-lbl">USD/JPY</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
-      <div class="rate-card" id="r-spy"><div class="rate-lbl">SPY ETF</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
-      <div class="rate-card" id="r-qqq"><div class="rate-lbl">QQQ ETF</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-spy"><div class="rate-lbl">S&amp;P 500</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-qqq"><div class="rate-lbl">NASDAQ</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
       <div class="rate-card"><div class="rate-lbl">KTB 10Y</div><div class="rate-val">3.245%</div><div class="rate-chg t-dn">▼−2bps</div></div>
       <div class="rate-card"><div class="rate-lbl">BOK Base</div><div class="rate-val">3.50%</div><div class="rate-chg" style="color:rgba(255,255,255,0.4)">HOLD</div></div>
     </div>
@@ -774,10 +774,10 @@ document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${
 /* ═══════════════════════════════════════
    REAL MARKET DATA
    Source: Google Finance via Apps Script
-   URL: https://script.google.com/macros/s/AKfycbz-uMoGdH57BkT_h1ggja_Br_bS8EHM-A3cgZTF6MWugtcqnTZaLk2sG_MV1-DFkJcy/exec
+   URL: https://script.google.com/macros/s/AKfycbxCXUclXUQ-7Za1luzRG9cHbBTUTn2qd87SX1_G1hMVsx374uqprA3SD586w7PJIG75/exec
 ═══════════════════════════════════════ */
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz-uMoGdH57BkT_h1ggja_Br_bS8EHM-A3cgZTF6MWugtcqnTZaLk2sG_MV1-DFkJcy/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxCXUclXUQ-7Za1luzRG9cHbBTUTn2qd87SX1_G1hMVsx374uqprA3SD586w7PJIG75/exec';
 
 const C_COLORS = { c0:'#60a5fa', c1:'#4ade80', c2:'#f87171', c3:'#fbbf24' };
 const C_INST   = {};
@@ -882,7 +882,7 @@ function assignRateIds() {
 function updateTopBar(data) {
   const map = [
     { key:'KOSPI',  tbId:'tb-kospi', fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
-    { key:'SPY',    tbId:'tb-sp',    fmt: p => Number(p).toFixed(2) },
+    { key:'SP500',  tbId:'tb-sp',    fmt: p => Number(p).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) },
     { key:'QQQ',    tbId:'tb-qqq',   fmt: p => Number(p).toFixed(2) },
     { key:'USDKRW', tbId:'tb-krw',   fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
   ];
@@ -928,8 +928,8 @@ async function loadMarket() {
     // ── Main 4 charts ──
     const chartMap = {
       c0: { key:'KOSPI',  vol:0.008 },
-      c1: { key:'SPY',    vol:0.006 },
-      c2: { key:'QQQ',    vol:0.007 },
+      c1: { key:'SP500',  vol:0.006 },
+      c2: { key:'NASDAQ', vol:0.007 },
       c3: { key:'USDKRW', vol:0.003 },
     };
 
@@ -954,8 +954,8 @@ async function loadMarket() {
     assignRateIds();
     if (data.EURUSD) setRate('r-eurusd', data.EURUSD.price, data.EURUSD.prev, '', 4);
     if (data.USDJPY) setRate('r-usdjpy', data.USDJPY.price, data.USDJPY.prev, '', 2);
-    if (data.SPY)    setRate('r-spy',    data.SPY.price,    data.SPY.prev,    '$', 2);
-    if (data.QQQ)    setRate('r-qqq',    data.QQQ.price,    data.QQQ.prev,    '$', 2);
+    if (data.SP500)  setRate('r-spy',    data.SP500.price,  data.SP500.prev,  '', 2);
+    if (data.NASDAQ) setRate('r-qqq',    data.NASDAQ.price, data.NASDAQ.prev, '', 2);
 
     // ── Top bar ──
     updateTopBar(data);
@@ -974,9 +974,9 @@ document.addEventListener('DOMContentLoaded', () => {
   assignRateIds();
 
   // Instant fallback charts (correct approximate values)
-  simChart('c0', 2650,  30);   // KOSPI
-  simChart('c1', 519,    5);   // SPY
-  simChart('c2', 440,    6);   // QQQ
+  simChart('c0', 6191,  80);   // KOSPI
+  simChart('c1', 7126, 100);   // S&P500
+  simChart('c2', 24468,300);   // NASDAQ
   simChart('c3', 1342,   5);   // USD/KRW
 
   // Load real data after short delay
