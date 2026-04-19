@@ -774,10 +774,10 @@ document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${
 /* ═══════════════════════════════════════
    REAL MARKET DATA
    Source: Google Finance via Apps Script
-   URL: https://script.google.com/macros/s/AKfycbxCXUclXUQ-7Za1luzRG9cHbBTUTn2qd87SX1_G1hMVsx374uqprA3SD586w7PJIG75/exec
+   URL: https://script.google.com/macros/s/AKfycbwIbrsvlciSLr0xa7yU6HLGRJlauQZb-YkoF6BSMrQ5eUsWRaqWPLKgmL2GQcNTEJk/exec
 ═══════════════════════════════════════ */
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxCXUclXUQ-7Za1luzRG9cHbBTUTn2qd87SX1_G1hMVsx374uqprA3SD586w7PJIG75/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwIbrsvlciSLr0xa7yU6HLGRJlauQZb-YkoF6BSMrQ5eUsWRaqWPLKgmL2GQcNTEJk/exec';
 
 const C_COLORS = { c0:'#60a5fa', c1:'#4ade80', c2:'#f87171', c3:'#fbbf24' };
 const C_INST   = {};
@@ -839,7 +839,18 @@ function mockHistory(price, days=30, volatility=0.01) {
 function setBox(id, price, prev) {
   const valEl = document.getElementById('val-' + id);
   const chgEl = document.getElementById('chg-' + id);
-  if (!valEl || !chgEl || !price || !prev || prev===0) return;
+  if (!valEl || !chgEl) return;
+  // If market closed (null price), show prev close with "휴장" label
+  if (!price && prev) {
+    if (id==='c3') valEl.textContent = Number(prev).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    else if (prev>1000) valEl.textContent = Number(prev).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    else valEl.textContent = Number(prev).toFixed(2);
+    chgEl.textContent = '휴장 (전일종가)';
+    chgEl.className = 'chart-box-chg';
+    chgEl.style.color = 'rgba(255,255,255,0.4)';
+    return;
+  }
+  if (!price || !prev || prev===0) return;
 
   const pct = ((price - prev) / prev * 100);
   const up  = pct >= 0;
@@ -859,7 +870,16 @@ function setBox(id, price, prev) {
 /* ── Update rate card ── */
 function setRate(id, price, prev, prefix, decimals) {
   const el = document.getElementById(id);
-  if (!el || !price) return;
+  if (!el) return;
+  // If market closed, show prev close
+  if (!price && prev) {
+    const v = el.querySelector('.rate-val');
+    const c = el.querySelector('.rate-chg');
+    if (v) v.textContent = prefix + Number(prev).toFixed(decimals);
+    if (c) { c.textContent = '휴장'; c.className = 'rate-chg'; c.style.color='rgba(255,255,255,0.4)'; }
+    return;
+  }
+  if (!price) return;
   const pct = prev ? ((price-prev)/prev*100).toFixed(2) : '0.00';
   const up  = parseFloat(pct) >= 0;
   const v   = el.querySelector('.rate-val');
@@ -888,8 +908,11 @@ function updateTopBar(data) {
   ];
   map.forEach(m => {
     const d = data[m.key];
-    if (!d || !d.price || !d.prev) return;
-    const pct = ((d.price - d.prev) / d.prev * 100).toFixed(2);
+    if (!d) return;
+    const displayPrice = d.price || d.prev;
+    const displayPrev  = d.prev  || d.price;
+    if (!displayPrice) return;
+    const pct = d.price && d.prev ? ((d.price - d.prev) / d.prev * 100).toFixed(2) : '0.00';
     const up  = parseFloat(pct) >= 0;
     // Find tb-item by id
     const items = document.querySelectorAll('.tb-item');
@@ -897,8 +920,11 @@ function updateTopBar(data) {
       if (item.id === m.tbId) {
         const v = item.querySelector('.val');
         const c = item.querySelector('span:last-child');
-        if (v) v.textContent = m.fmt(d.price);
-        if (c) { c.textContent = `${up?'+':''}${pct}%`; c.className = up?'t-up':'t-dn'; }
+        if (v) v.textContent = m.fmt(displayPrice);
+        if (c) {
+          if (!d.price) { c.textContent = '휴장'; c.className = ''; c.style.color='rgba(255,255,255,0.4)'; }
+          else { c.textContent = `${up?'+':''}${pct}%`; c.className = up?'t-up':'t-dn'; }
+        }
       }
     });
   });
@@ -935,19 +961,26 @@ async function loadMarket() {
 
     for (const [id, cfg] of Object.entries(chartMap)) {
       const d = data[cfg.key];
-      if (!d || !d.price || d.price === 0) continue;
+      if (!d) continue;
 
-      // Use real price & prev close
+      // Use price if available, otherwise use prev (휴장/weekend)
+      const displayPrice = d.price || d.prev;
+      const displayPrev  = d.prev  || d.price;
+      if (!displayPrice) continue;
+
       setBox(id, d.price, d.prev);
 
-      // Build history from mock (GAS returns price+prev, not full history)
-      const hist = mockHistory(d.price, 30, cfg.vol);
+      // Build history chart using available price
+      const hist = mockHistory(displayPrice, 30, cfg.vol);
       buildChart(id, hist, C_COLORS[id]);
 
       // Restore opacity
       const cv  = document.getElementById(id);
       const box = cv && cv.closest('.chart-box');
-      if (box) box.querySelector('.chart-box-val').style.opacity = '1';
+      if (box) {
+        const ve = box.querySelector('.chart-box-val');
+        if (ve) ve.style.opacity = '1';
+      }
     }
 
     // ── Rate cards ──
@@ -956,6 +989,8 @@ async function loadMarket() {
     if (data.USDJPY) setRate('r-usdjpy', data.USDJPY.price, data.USDJPY.prev, '', 2);
     if (data.SP500)  setRate('r-spy',    data.SP500.price,  data.SP500.prev,  '', 2);
     if (data.NASDAQ) setRate('r-qqq',    data.NASDAQ.price, data.NASDAQ.prev, '', 2);
+    if (data.SPY)    setRate('r-spy2',   data.SPY.price,    data.SPY.prev,    '$', 2);
+    if (data.QQQ)    setRate('r-qqq2',   data.QQQ.price,    data.QQQ.prev,    '$', 2);
 
     // ── Top bar ──
     updateTopBar(data);
