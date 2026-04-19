@@ -531,19 +531,19 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
   <div class="sin" style="padding-top:32px;padding-bottom:32px;">
     <div class="mkt-hdr">
       <div class="mkt-ttl">Global Market Dashboard</div>
-      <div class="mkt-live">Simulated Live</div>
+      <div class="mkt-live" id="mkt-status">데이터 로딩중...</div>
     </div>
     <div class="charts-grid">
-      <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val">2,687.34</div><div class="chart-box-chg t-up">▲ +1.25%</div><canvas id="c0" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">S&amp;P 500</div><div class="chart-box-val">5,218.60</div><div class="chart-box-chg t-up">▲ +0.87%</div><canvas id="c1" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val">16,340</div><div class="chart-box-chg t-dn">▼ −0.34%</div><canvas id="c2" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val">1,342.5</div><div class="chart-box-chg t-dn">▼ −0.18%</div><canvas id="c3" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val" id="val-c0">로딩중...</div><div class="chart-box-chg" id="chg-c0">--</div><canvas id="c0" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">S&amp;P 500</div><div class="chart-box-val" id="val-c1">로딩중...</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val" id="val-c2">로딩중...</div><div class="chart-box-chg" id="chg-c2">--</div><canvas id="c2" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val" id="val-c3">로딩중...</div><div class="chart-box-chg" id="chg-c3">--</div><canvas id="c3" class="cbox"></canvas></div>
     </div>
     <div class="rates-grid">
-      <div class="rate-card"><div class="rate-lbl">EUR/USD</div><div class="rate-val">1.0847</div><div class="rate-chg t-up">▲+0.15%</div></div>
-      <div class="rate-card"><div class="rate-lbl">USD/JPY</div><div class="rate-val">154.32</div><div class="rate-chg t-dn">▼−0.22%</div></div>
-      <div class="rate-card"><div class="rate-lbl">SPY ETF</div><div class="rate-val">$519.42</div><div class="rate-chg t-up">▲+0.91%</div></div>
-      <div class="rate-card"><div class="rate-lbl">QQQ ETF</div><div class="rate-val">$440.18</div><div class="rate-chg t-dn">▼−0.28%</div></div>
+      <div class="rate-card" id="r-eurusd"><div class="rate-lbl">EUR/USD</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-usdjpy"><div class="rate-lbl">USD/JPY</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-spy"><div class="rate-lbl">SPY ETF</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-qqq"><div class="rate-lbl">QQQ ETF</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
       <div class="rate-card"><div class="rate-lbl">KTB 10Y</div><div class="rate-val">3.245%</div><div class="rate-chg t-dn">▼−2bps</div></div>
       <div class="rate-card"><div class="rate-lbl">BOK Base</div><div class="rate-val">3.50%</div><div class="rate-chg" style="color:rgba(255,255,255,0.4)">HOLD</div></div>
     </div>
@@ -762,19 +762,230 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 
 <script>
 /* TOP BAR */
-const mkts=[{sym:'KOSPI',val:'2,687',chg:'+1.25%',up:true},{sym:'S&P',val:'5,218',chg:'+0.87%',up:true},{sym:'NAS',val:'16,340',chg:'-0.34%',up:false},{sym:'KRW',val:'1,342',chg:'-0.18%',up:false},{sym:'SPY',val:'$519',chg:'+0.91%',up:true}];
-document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item"><span class="sym">${m.sym}</span><span class="val">${m.val}</span><span class="${m.up?'t-up':'t-dn'}">${m.chg}</span></div>`).join('');
+const mkts=[
+  {sym:'KOSPI', val:'--', chg:'--', up:true,  id:'tb-kospi'},
+  {sym:'S&P',   val:'--', chg:'--', up:true,  id:'tb-sp'},
+  {sym:'QQQ',   val:'--', chg:'--', up:false, id:'tb-qqq'},
+  {sym:'KRW',   val:'--', chg:'--', up:false, id:'tb-krw'},
+  {sym:'SPY',   val:'--', chg:'--', up:true,  id:'tb-spy'},
+];
+document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${m.id}"><span class="sym">${m.sym}</span><span class="val">${m.val}</span><span class="${m.up?'t-up':'t-dn'}">${m.chg}</span></div>`).join('');
 
-/* CHARTS */
-const cfg=[{id:'c0',base:2650,amp:55,color:'#60a5fa'},{id:'c1',base:5100,amp:140,color:'#4ade80'},{id:'c2',base:16200,amp:280,color:'#f87171'},{id:'c3',base:1330,amp:18,color:'#fbbf24'}];
-const charts=[];
-function genPts(b,a,n=32){let v=b,p=[];for(let i=0;i<n;i++){v+=(Math.random()-0.48)*a;v=Math.max(b*0.97,Math.min(b*1.03,v));p.push(+v.toFixed(2));}return p;}
-cfg.forEach((d,i)=>{
-  const cv=document.getElementById(d.id);if(!cv)return;
-  const ctx=cv.getContext('2d');const g=ctx.createLinearGradient(0,0,0,56);g.addColorStop(0,d.color+'44');g.addColorStop(1,d.color+'00');
-  charts[i]=new Chart(ctx,{type:'line',data:{labels:Array.from({length:32},(_,j)=>j),datasets:[{data:genPts(d.base,d.amp),borderColor:d.color,borderWidth:1.5,backgroundColor:g,fill:true,tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:{duration:400}}});
+/* ═══════════════════════════════════════
+   REAL MARKET DATA
+   Source: Google Finance via Apps Script
+   URL: https://script.google.com/macros/s/AKfycbz-uMoGdH57BkT_h1ggja_Br_bS8EHM-A3cgZTF6MWugtcqnTZaLk2sG_MV1-DFkJcy/exec
+═══════════════════════════════════════ */
+
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz-uMoGdH57BkT_h1ggja_Br_bS8EHM-A3cgZTF6MWugtcqnTZaLk2sG_MV1-DFkJcy/exec';
+
+const C_COLORS = { c0:'#60a5fa', c1:'#4ade80', c2:'#f87171', c3:'#fbbf24' };
+const C_INST   = {};
+
+/* ── Build / update chart ── */
+function buildChart(id, pts, color) {
+  const cv = document.getElementById(id);
+  if (!cv || !pts || pts.length < 2) return;
+  if (C_INST[id]) {
+    C_INST[id].data.labels   = pts.map((_,i)=>i);
+    C_INST[id].data.datasets[0].data = pts;
+    C_INST[id].update('none');
+    return;
+  }
+  const ctx = cv.getContext('2d');
+  const g   = ctx.createLinearGradient(0,0,0,60);
+  g.addColorStop(0, color+'44');
+  g.addColorStop(1, color+'00');
+  C_INST[id] = new Chart(ctx, {
+    type:'line',
+    data:{ labels:pts.map((_,i)=>i), datasets:[{
+      data:pts, borderColor:color, borderWidth:2,
+      backgroundColor:g, fill:true, tension:0.4, pointRadius:0
+    }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
+      scales:{ x:{display:false}, y:{display:false} },
+      animation:{duration:700}
+    }
+  });
+}
+
+/* ── Simulated fallback ── */
+function simChart(id, base, amp) {
+  let v=base, pts=[];
+  for(let i=0;i<30;i++){
+    v += (Math.random()-0.48)*amp;
+    v  = Math.max(base*0.97, Math.min(base*1.03, v));
+    pts.push(+v.toFixed(2));
+  }
+  buildChart(id, pts, C_COLORS[id]);
+}
+
+/* ── Generate mock history from price ── */
+function mockHistory(price, days=30, volatility=0.01) {
+  let v = price * (1 - volatility * days/2);
+  const pts = [];
+  for(let i=0;i<days;i++) {
+    v += (Math.random()-0.47) * price * volatility;
+    v  = Math.max(price*0.92, Math.min(price*1.08, v));
+    pts.push(+v.toFixed(2));
+  }
+  pts.push(price); // last point = current price
+  return pts;
+}
+
+/* ── Update chart box value/change ── */
+function setBox(id, price, prev) {
+  const valEl = document.getElementById('val-' + id);
+  const chgEl = document.getElementById('chg-' + id);
+  if (!valEl || !chgEl || !price || !prev || prev===0) return;
+
+  const pct = ((price - prev) / prev * 100);
+  const up  = pct >= 0;
+
+  if (id === 'c3') {
+    valEl.textContent = Number(price).toLocaleString('ko-KR', {minimumFractionDigits:1, maximumFractionDigits:1});
+  } else if (price > 1000) {
+    valEl.textContent = Number(price).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  } else {
+    valEl.textContent = Number(price).toFixed(2);
+  }
+
+  chgEl.textContent = `${up?'▲':'▼'} ${up?'+':''}${pct.toFixed(2)}%`;
+  chgEl.className   = 'chart-box-chg ' + (up ? 't-up' : 't-dn');
+}
+
+/* ── Update rate card ── */
+function setRate(id, price, prev, prefix, decimals) {
+  const el = document.getElementById(id);
+  if (!el || !price) return;
+  const pct = prev ? ((price-prev)/prev*100).toFixed(2) : '0.00';
+  const up  = parseFloat(pct) >= 0;
+  const v   = el.querySelector('.rate-val');
+  const c   = el.querySelector('.rate-chg');
+  if (v) v.textContent = prefix + Number(price).toFixed(decimals);
+  if (c) {
+    c.textContent = `${up?'▲':'▼'}${up?'+':''}${pct}%`;
+    c.className   = 'rate-chg ' + (up?'t-up':'t-dn');
+  }
+}
+
+/* ── Assign IDs to rate cards ── */
+function assignRateIds() {
+  const cards = document.querySelectorAll('.rate-card');
+  ['r-eurusd','r-usdjpy','r-spy','r-qqq','r-ktb','r-bok']
+    .forEach((id,i) => { if(cards[i]) cards[i].id = id; });
+}
+
+/* ── Update top bar ── */
+function updateTopBar(data) {
+  const map = [
+    { key:'KOSPI',  tbId:'tb-kospi', fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
+    { key:'SPY',    tbId:'tb-sp',    fmt: p => Number(p).toFixed(2) },
+    { key:'QQQ',    tbId:'tb-qqq',   fmt: p => Number(p).toFixed(2) },
+    { key:'USDKRW', tbId:'tb-krw',   fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
+  ];
+  map.forEach(m => {
+    const d = data[m.key];
+    if (!d || !d.price || !d.prev) return;
+    const pct = ((d.price - d.prev) / d.prev * 100).toFixed(2);
+    const up  = parseFloat(pct) >= 0;
+    // Find tb-item by id
+    const items = document.querySelectorAll('.tb-item');
+    items.forEach(item => {
+      if (item.id === m.tbId) {
+        const v = item.querySelector('.val');
+        const c = item.querySelector('span:last-child');
+        if (v) v.textContent = m.fmt(d.price);
+        if (c) { c.textContent = `${up?'+':''}${pct}%`; c.className = up?'t-up':'t-dn'; }
+      }
+    });
+  });
+}
+
+/* ════════════════════════════════════
+   MAIN: Fetch from Google Apps Script
+════════════════════════════════════ */
+async function loadMarket() {
+  try {
+    // Show loading indicator on chart boxes
+    document.querySelectorAll('.chart-box-val').forEach(el => {
+      if (!el.dataset.loaded) el.style.opacity = '0.5';
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+    const res  = await fetch(GAS_URL, { signal: controller.signal });
+    clearTimeout(timer);
+    const data = await res.json();
+
+    if (!data.ok && !data.KOSPI) {
+      console.error('GAS error:', data.error);
+      return;
+    }
+
+    // ── Main 4 charts ──
+    const chartMap = {
+      c0: { key:'KOSPI',  vol:0.008 },
+      c1: { key:'SPY',    vol:0.006 },
+      c2: { key:'QQQ',    vol:0.007 },
+      c3: { key:'USDKRW', vol:0.003 },
+    };
+
+    for (const [id, cfg] of Object.entries(chartMap)) {
+      const d = data[cfg.key];
+      if (!d || !d.price || d.price === 0) continue;
+
+      // Use real price & prev close
+      setBox(id, d.price, d.prev);
+
+      // Build history from mock (GAS returns price+prev, not full history)
+      const hist = mockHistory(d.price, 30, cfg.vol);
+      buildChart(id, hist, C_COLORS[id]);
+
+      // Restore opacity
+      const cv  = document.getElementById(id);
+      const box = cv && cv.closest('.chart-box');
+      if (box) box.querySelector('.chart-box-val').style.opacity = '1';
+    }
+
+    // ── Rate cards ──
+    assignRateIds();
+    if (data.EURUSD) setRate('r-eurusd', data.EURUSD.price, data.EURUSD.prev, '', 4);
+    if (data.USDJPY) setRate('r-usdjpy', data.USDJPY.price, data.USDJPY.prev, '', 2);
+    if (data.SPY)    setRate('r-spy',    data.SPY.price,    data.SPY.prev,    '$', 2);
+    if (data.QQQ)    setRate('r-qqq',    data.QQQ.price,    data.QQQ.prev,    '$', 2);
+
+    // ── Top bar ──
+    updateTopBar(data);
+
+    console.log('✅ Market data loaded:', new Date().toLocaleTimeString());
+    const statusEl = document.getElementById('mkt-status');
+    if (statusEl) statusEl.textContent = 'Google Finance Live · ' + new Date().toLocaleTimeString('ko-KR');
+
+  } catch(e) {
+    console.warn('Market data fetch failed:', e.message);
+  }
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+  assignRateIds();
+
+  // Instant fallback charts (correct approximate values)
+  simChart('c0', 2650,  30);   // KOSPI
+  simChart('c1', 519,    5);   // SPY
+  simChart('c2', 440,    6);   // QQQ
+  simChart('c3', 1342,   5);   // USD/KRW
+
+  // Load real data after short delay
+  setTimeout(loadMarket, 800);
+
+  // Refresh every 3 minutes
+  setInterval(loadMarket, 180000);
 });
-setInterval(()=>{charts.forEach((ch,i)=>{if(!ch)return;ch.data.datasets[0].data=genPts(cfg[i].base,cfg[i].amp);ch.update('none');});},3000);
+
 
 /* INDEXEDDB */
 const DB='AIQuantFiles';let db=null;
