@@ -3,777 +3,261 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>AIQuant Financial Engineering Research</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cormorant+SC:wght@400;500;600&family=Source+Serif+4:wght@300;400;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
-/* ═══════════════════════════════════════
-   FILE SHARE SYSTEM
-   Server: Google Apps Script + Drive
-   Upload: Owner (anyone with the page)
-   Download: Everyone
-   Delete: Admin password only
-═══════════════════════════════════════ */
-const FS_URL = 'https://script.google.com/macros/s/AKfycbzKh5gkHW9saKQRlVHJ1MU9aksp9URwcQa8zzEP66U7PZdHKWEyZsXD_03aQXNPdVU9Qg/exec';
-const FS_PW  = 'aiquant2026'; // 삭제 비밀번호
-
-let pendingDelId = null;
-
-/* ── icon helper ── */
-function fsIcon(name) {
-  const e = (name.split('.').pop()||'').toLowerCase();
-  if(['xlsx','xls','csv'].includes(e)) return '📊';
-  if(['docx','doc'].includes(e))       return '📄';
-  if(e==='pdf')                        return '📕';
-  if(['png','jpg','jpeg'].includes(e)) return '🖼️';
-  if(e==='pptx')                       return '📑';
-  if(e==='py')                         return '🐍';
-  if(e==='zip')                        return '🗜️';
-  return '📁';
-}
-
-function fsSz(b) {
-  if(b>1048576) return (b/1048576).toFixed(1)+' MB';
-  if(b>1024)    return (b/1024).toFixed(0)+' KB';
-  return b+' B';
-}
-
-function fsDt(ts) {
-  const d = new Date(ts);
-  return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
-}
-
-/* ── Load file list from server ── */
-async function fsLoad() {
-  const list = document.getElementById('flList');
-  const cnt  = document.getElementById('flCount');
-  try {
-    const r = await fetch(FS_URL + '?action=list');
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
-
-    if (cnt) cnt.textContent = d.files.length + '개 파일';
-    if (!list) return;
-    list.innerHTML = '';
-
-    if (d.files.length === 0) {
-      list.innerHTML = '<div class="fl-empty">업로드된 파일이 없습니다.</div>';
-      return;
-    }
-
-    d.files.forEach(f => {
-      const div = document.createElement('div');
-      div.className = 'fl-item';
-      div.id = 'fi-' + f.id;
-      div.innerHTML = `
-        <div class="fl-icon">${fsIcon(f.name)}</div>
-        <div class="fl-name">${f.name}</div>
-        <div class="fl-meta">${fsSz(f.size)} · ${fsDt(f.date)}</div>
-        <div class="fl-btns">
-          <button class="fl-dl" onclick="fsDl('${f.id}','${f.name}')">⬇ Download</button>
-          <button class="fl-del" onclick="admOpen('${f.id}')">🔐 Delete</button>
-        </div>`;
-      list.appendChild(div);
-    });
-  } catch(e) {
-    if (list) list.innerHTML = '<div class="fl-empty">⚠️ 파일 목록을 불러올 수 없습니다.<br><small>' + e.message + '</small></div>';
-    if (cnt)  cnt.textContent = '오류';
-  }
-}
-
-/* ── Download file ── */
-async function fsDl(fid, fname) {
-  try {
-    // Open direct download URL
-    const url = FS_URL + '?action=download&fid=' + fid;
-    const a = document.createElement('a');
-    a.href = 'https://drive.google.com/uc?export=download&id=' + fid;
-    a.download = fname;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } catch(e) {
-    alert('다운로드 실패: ' + e.message);
-  }
-}
-
-/* ── Upload file ── */
-async function fsUpload(files) {
-  const prog = document.getElementById('upProgress');
-  const bar  = document.getElementById('upBar');
-  const msg  = document.getElementById('upMsg');
-
-  if (!files || files.length === 0) return;
-
-  prog.style.display = 'block';
-  msg.textContent = '';
-
-  let done = 0;
-  const total = files.length;
-
-  for (const file of Array.from(files)) {
-    msg.textContent = `업로드 중... ${file.name} (${done+1}/${total})`;
-    bar.style.width = (done / total * 80) + '%';
-
-    try {
-      // Read file as base64
-      const b64 = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = e => res(e.target.result.split(',')[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
-      });
-
-      const payload = JSON.stringify({
-        name: file.name,
-        mime: file.type || 'application/octet-stream',
-        data: b64
-      });
-
-      const r = await fetch(FS_URL, {
-        method: 'POST',
-        body: payload,
-        headers: { 'Content-Type': 'text/plain' }
-      });
-      const d = await r.json();
-      if (!d.ok) throw new Error(d.error);
-      done++;
-    } catch(e) {
-      msg.textContent = '❌ 업로드 실패: ' + file.name + ' - ' + e.message;
-      bar.style.width = '0%';
-      setTimeout(() => { prog.style.display='none'; msg.textContent=''; }, 3000);
-      return;
-    }
-  }
-
-  bar.style.width = '100%';
-  msg.textContent = `✅ ${total}개 파일 업로드 완료!`;
-  setTimeout(() => {
-    prog.style.display = 'none';
-    bar.style.width = '0%';
-    msg.textContent = '';
-  }, 2000);
-
-  // Reload list
-  await fsLoad();
-}
-
-/* ── Setup upload events ── */
-function fsSetupUpload() {
-  const drop  = document.getElementById('upDrop');
-  const input = document.getElementById('upInput');
-  if (!drop || !input) return;
-
-  drop.addEventListener('click', () => input.click());
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', e => {
-    e.preventDefault();
-    drop.classList.remove('over');
-    fsUpload(e.dataTransfer.files);
-  });
-  input.addEventListener('change', e => {
-    fsUpload(e.target.files);
-    e.target.value = '';
-  });
-}
-
-/* ── Admin modal ── */
-function admOpen(fid) {
-  pendingDelId = fid;
-  document.getElementById('admModal').classList.add('show');
-  document.getElementById('admPw').value = '';
-  document.getElementById('admErr').style.display = 'none';
-  setTimeout(() => document.getElementById('admPw').focus(), 100);
-}
-
-function admClose() {
-  document.getElementById('admModal').classList.remove('show');
-  pendingDelId = null;
-}
-
-async function admCheck() {
-  const pw = document.getElementById('admPw').value;
-  if (pw !== FS_PW) {
-    document.getElementById('admErr').style.display = 'block';
-    document.getElementById('admPw').value = '';
-    document.getElementById('admPw').focus();
-    return;
-  }
-  admClose();
-  await fsDelete(pendingDelId);
-}
-
-/* ── Delete file ── */
-async function fsDelete(fid) {
-  const item = document.getElementById('fi-' + fid);
-  if (item) item.style.opacity = '0.4';
-  try {
-    const r = await fetch(`${FS_URL}?action=delete&fid=${fid}&pw=${encodeURIComponent(FS_PW)}`);
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
-    await fsLoad();
-  } catch(e) {
-    alert('삭제 실패: ' + e.message);
-    if (item) item.style.opacity = '1';
-  }
-}
-
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', () => {
-  fsSetupUpload();
-  fsLoad();
-  // Refresh list every 2 minutes
-  setInterval(fsLoad, 120000);
-});
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+:root{
+  --navy:#0b1d3a;--navy2:#152d56;--navy3:#1e3a6e;
+  --teal:#0e4d6e;--teal2:#1a6b8a;
+  --gold:#8a6500;--gold2:#b38b00;--gold3:#d4a800;--gold4:#f0c832;
+  --green:#0d5c3a;--red:#8b1a1a;
+  --purple:#3b1f6e;--copper:#7a3a0a;
+  --silver:#f0f2f5;--silver2:#e4e7ec;
+  --white:#ffffff;--border:#c8cdd6;
+  --text:#0b1d3a;--text2:#1e2d45;--text3:#2d3f58;
+  --serif:'Cormorant Garamond','Georgia',serif;
+  --sc:'Cormorant SC','Georgia',serif;
+  --body:'Source Serif 4','Georgia',serif;
+  --mono:'JetBrains Mono',monospace;
+  --px:16px;--py:40px;
+}
+@media(min-width:640px){:root{--px:28px;--py:56px;}}
+@media(min-width:1024px){:root{--px:40px;--py:72px;}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{background:var(--silver);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.7;overflow-x:hidden;width:100%;max-width:100vw;}
+img,canvas{max-width:100%;display:block;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:#8a9ab0;}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;width:100%;height:36px;background:var(--navy);display:flex;align-items:center;padding:0 var(--px);z-index:300;overflow:hidden;}
+.tb-brand{font-family:var(--sc);font-size:11px;letter-spacing:0.1em;color:rgba(255,255,255,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.tb-mkt{display:flex;gap:14px;flex-shrink:0;margin-left:12px;}
+.tb-item{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.7);white-space:nowrap;}
+.tb-item .sym{color:rgba(255,255,255,0.35);}
+.tb-item .val{color:#fff;font-weight:500;}
+.t-up{color:#4ade80;}.t-dn{color:#f87171;}
+@media(max-width:480px){.tb-item:nth-child(n+3){display:none;}}
+@media(max-width:360px){.tb-item:nth-child(n+2){display:none;}}
+
+/* NAV */
+nav{position:fixed;top:36px;left:0;right:0;width:100%;background:var(--white);border-bottom:2px solid var(--navy);z-index:299;box-shadow:0 2px 10px rgba(11,29,58,0.1);}
+.nav-inner{display:flex;align-items:center;padding:0 var(--px);height:54px;overflow:hidden;}
+.nav-logo{flex-shrink:0;}
+.nav-logo-main{font-family:var(--sc);font-size:clamp(11px,2.5vw,16px);font-weight:600;letter-spacing:0.06em;color:var(--navy);line-height:1;}
+.nav-logo-sub{font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--gold2);text-transform:uppercase;margin-top:2px;}
+.nav-scroll{display:flex;overflow-x:auto;margin-left:12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;}
+.nav-scroll::-webkit-scrollbar{display:none;}
+.nav-links{display:flex;list-style:none;}
+.nav-links a{display:block;height:54px;line-height:54px;padding:0 10px;font-family:var(--sc);font-size:clamp(10px,2vw,12px);letter-spacing:0.08em;color:var(--navy2);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;}
+.nav-links a:hover{color:var(--gold2);border-bottom-color:var(--gold2);}
+main{margin-top:90px;width:100%;}
+
+/* SECTIONS */
+.sin{width:100%;max-width:1280px;margin:0 auto;padding:var(--py) var(--px);}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:36px;padding-bottom:14px;border-bottom:2px solid var(--navy);}
+.sec-num{font-family:var(--mono);font-size:10px;color:var(--gold2);letter-spacing:0.2em;}
+.sec-ttl{font-family:var(--serif);font-size:clamp(22px,5vw,30px);font-weight:400;color:var(--navy);}
+.sec-ttl-w{font-family:var(--serif);font-size:clamp(22px,5vw,30px);font-weight:400;color:white;}
+.sec-num-w{font-family:var(--mono);font-size:10px;color:var(--gold4);letter-spacing:0.2em;}
+.sec-white{background:var(--white);border-bottom:1px solid var(--border);}
+.sec-silver{background:var(--silver);border-bottom:1px solid var(--border);}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 60%,var(--teal) 100%);padding:var(--py) var(--px);position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);background-size:40px 40px;}
+.hero-content{position:relative;z-index:1;max-width:1280px;margin:0 auto;}
+.hero-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold4);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.hero-eyebrow::before{content:'';width:20px;height:1px;background:var(--gold4);flex-shrink:0;}
+.hero-name{font-family:var(--serif);font-size:clamp(36px,8vw,68px);font-weight:400;line-height:1.05;color:white;margin-bottom:6px;}
+.hero-ko{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.6);letter-spacing:0.12em;margin-bottom:20px;}
+.hero-rule{width:48px;height:2px;background:var(--gold4);margin-bottom:20px;}
+.hero-desc{font-family:var(--body);font-size:14px;font-weight:300;line-height:1.85;color:rgba(255,255,255,0.88);margin-bottom:28px;max-width:640px;}
+.hero-desc strong{color:var(--gold4);font-weight:600;}
+.hero-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px;}
+.hpill{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 11px;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.07);}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px;}
+.stat-box{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);padding:16px;text-align:center;}
+.stat-val{font-family:var(--serif);font-size:clamp(28px,5vw,36px);color:var(--gold4);line-height:1;}
+.stat-unit{font-family:var(--mono);font-size:11px;color:var(--gold4);margin-bottom:3px;}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);}
+
+/* MARKET */
+.mkt-sec{background:var(--navy2);border-bottom:3px solid var(--gold2);}
+.mkt-in{max-width:1280px;margin:0 auto;padding:32px var(--px);}
+.mkt-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.mkt-ttl{font-family:var(--sc);font-size:clamp(15px,3vw,19px);letter-spacing:0.08em;color:white;}
+.mkt-live{font-family:var(--mono);font-size:9px;color:#4ade80;display:flex;align-items:center;gap:5px;}
+.mkt-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{50%{opacity:0.2;}}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(min-width:1024px){.charts-grid{grid-template-columns:repeat(4,1fr);}}
+.chart-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);padding:12px;}
+.chart-box-title{font-family:var(--sc);font-size:10px;letter-spacing:0.07em;color:rgba(255,255,255,0.65);margin-bottom:2px;}
+.chart-box-val{font-family:var(--mono);font-size:clamp(14px,3vw,18px);font-weight:500;color:white;margin-bottom:2px;}
+.chart-box-chg{font-family:var(--mono);font-size:10px;margin-bottom:8px;}
+canvas.cbox{height:56px!important;width:100%!important;}
+.rates-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(min-width:640px){.rates-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.rates-grid{grid-template-columns:repeat(6,1fr);}}
+.rate-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);padding:10px 12px;}
+.rate-lbl{font-family:var(--mono);font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-bottom:3px;}
+.rate-val{font-family:var(--mono);font-size:13px;font-weight:500;color:white;}
+.rate-chg{font-family:var(--mono);font-size:10px;}
+
+/* EXPERTISE */
+.exp-grid{display:grid;grid-template-columns:1fr;gap:0;border:2px solid var(--navy);}
+@media(min-width:640px){.exp-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.exp-grid{grid-template-columns:repeat(3,1fr);}}
+.exp-card{padding:28px 22px;border-bottom:1px solid rgba(255,255,255,0.1);}
+.exp-cn{font-family:var(--mono);font-size:10px;opacity:0.55;margin-bottom:12px;letter-spacing:0.14em;}
+.exp-icon{font-size:24px;margin-bottom:10px;display:block;}
+.exp-ct{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:10px;line-height:1.2;}
+.exp-cd{font-family:var(--body);font-size:13px;line-height:1.75;margin-bottom:14px;opacity:0.9;}
+.exp-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.etag{font-family:var(--mono);font-size:8px;letter-spacing:0.07em;text-transform:uppercase;padding:3px 8px;border:1px solid;opacity:0.8;}
+.ec1{background:var(--navy);color:white;}.ec1 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec2{background:var(--teal);color:white;}.ec2 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec3{background:var(--green);color:white;}.ec3 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec4{background:var(--purple);color:white;}.ec4 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec5{background:var(--copper);color:white;}.ec5 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec6{background:var(--gold);color:white;}.ec6 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+
+/* CAREER */
+.c-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.c-tbl{width:100%;min-width:600px;border-collapse:collapse;}
+.c-tbl th{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--navy2);padding:0 12px 12px;text-align:left;border-bottom:2px solid var(--navy);}
+.c-tbl th:first-child{padding-left:0;}
+.c-tbl td{padding:16px 12px;border-bottom:1px solid var(--silver2);vertical-align:top;}
+.c-tbl td:first-child{padding-left:0;}
+.c-tbl tr:last-child td{border-bottom:none;}
+.c-tbl tr:hover td{background:rgba(11,29,58,0.03);}
+.c-period{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);white-space:nowrap;}
+.c-role{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--navy);margin-bottom:3px;}
+.c-org{font-family:var(--body);font-size:12px;color:var(--text2);margin-bottom:3px;font-weight:600;}
+.c-det{font-family:var(--body);font-size:11px;color:var(--text3);font-style:italic;}
+.bdg{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 9px;font-weight:600;color:white;}
+.bdg-pl{background:var(--navy2);}.bdg-pm{background:var(--gold);}.bdg-dir{background:var(--green);}.bdg-adv{background:var(--teal);}
+.tbl-hint{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:8px;display:none;}
+@media(max-width:639px){.tbl-hint{display:block;}}
+
+/* PUBLICATIONS */
+.books{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:28px;}
+@media(min-width:640px){.books{grid-template-columns:1fr 1fr;}}
+.book{background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%);padding:28px;border-left:4px solid var(--gold4);}
+.book-yr{font-family:var(--mono);font-size:10px;color:var(--gold4);margin-bottom:10px;}
+.book-ttl{font-family:var(--serif);font-size:17px;font-style:italic;color:white;line-height:1.4;margin-bottom:8px;}
+.book-pub{font-family:var(--body);font-size:11px;color:rgba(255,255,255,0.4);}
+.pubs{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:640px){.pubs{grid-template-columns:1fr 1fr;}}
+.pub{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--navy);padding:22px;}
+.pub-yr{font-family:var(--mono);font-size:10px;color:var(--gold2);margin-bottom:8px;font-weight:500;}
+.pub-ttl{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--navy);line-height:1.5;margin-bottom:7px;}
+.pub-jnl{font-family:var(--body);font-size:12px;color:var(--text2);font-weight:600;}
+.pub-award{font-family:var(--mono);font-size:9px;color:var(--gold2);margin-top:7px;display:flex;align-items:center;gap:4px;}
+.pub-award::before{content:'★';}
+
 /* ═══════════════════════════════════
-   MOBILE-FIRST DESIGN
-   Base = mobile (360px~)
-   md   = tablet (640px+)
-   lg   = desktop (1024px+)
+   FILE LIBRARY SYSTEM
+   - Upload: 비밀번호 필요 (관리자만)
+   - Download: 누구나 무료
+   - Delete: 비밀번호 필요 (관리자만)
 ═══════════════════════════════════ */
-:root {
-  --navy:   #0b1d3a; --navy2: #152d56; --navy3: #1e3a6e;
-  --teal:   #0e4d6e; --teal2: #1a6b8a;
-  --gold:   #8a6500; --gold2: #b38b00; --gold3: #d4a800; --gold4: #f0c832;
-  --green:  #0d5c3a; --red: #8b1a1a;
-  --purple: #3b1f6e; --copper: #7a3a0a;
-  --silver: #f0f2f5; --silver2: #e4e7ec;
-  --white:  #ffffff; --border: #c8cdd6;
-  --text:   #0b1d3a; --text2: #1e2d45; --text3: #2d3f58;
-  --serif: 'Cormorant Garamond','Georgia',serif;
-  --sc:    'Cormorant SC','Georgia',serif;
-  --body:  'Source Serif 4','Georgia',serif;
-  --mono:  'JetBrains Mono',monospace;
-  /* spacing */
-  --px: 16px;
-  --py: 40px;
-}
-@media(min-width:640px){ :root{ --px:28px; --py:56px; } }
-@media(min-width:1024px){ :root{ --px:40px; --py:72px; } }
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-body {
-  background: var(--silver);
-  color: var(--text);
-  font-family: var(--body);
-  font-size: 15px;
-  line-height: 1.7;
-  overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
-}
-img, canvas { max-width: 100%; display: block; }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: #8a9ab0; }
-
-/* ── TOPBAR ── */
-.topbar {
-  position: fixed; top: 0; left: 0; right: 0; width: 100%;
-  height: 36px;
-  background: var(--navy);
-  display: flex; align-items: center;
-  padding: 0 var(--px);
-  z-index: 300;
-  overflow: hidden;
-}
-.tb-brand {
-  font-family: var(--sc);
-  font-size: 11px; letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.9);
-  white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-  flex: 1;
-}
-.tb-mkt {
-  display: flex; gap: 14px; flex-shrink: 0; margin-left: 12px;
-}
-.tb-item {
-  display: flex; align-items: center; gap: 4px;
-  font-family: var(--mono); font-size: 9px;
-  color: rgba(255,255,255,0.7); white-space: nowrap;
-}
-.tb-item .sym { color: rgba(255,255,255,0.35); }
-.tb-item .val { color: #fff; font-weight: 500; }
-.t-up { color: #4ade80; } .t-dn { color: #f87171; }
-/* hide extra items on tiny screens */
-@media(max-width:480px){ .tb-item:nth-child(n+3){ display:none; } }
-@media(max-width:360px){ .tb-item:nth-child(n+2){ display:none; } }
-
-/* ── NAV ── */
-nav {
-  position: fixed; top: 36px; left: 0; right: 0; width: 100%;
-  background: var(--white);
-  border-bottom: 2px solid var(--navy);
-  z-index: 299;
-  box-shadow: 0 2px 10px rgba(11,29,58,0.1);
-}
-.nav-inner {
-  display: flex; align-items: center;
-  padding: 0 var(--px);
-  height: 54px;
-  overflow: hidden;
-}
-.nav-logo { flex-shrink: 0; }
-.nav-logo-main {
-  font-family: var(--sc);
-  font-size: clamp(11px, 2.5vw, 16px);
-  font-weight: 600; letter-spacing: 0.06em;
-  color: var(--navy); line-height: 1;
-}
-.nav-logo-sub {
-  font-family: var(--mono);
-  font-size: 8px; letter-spacing: 0.14em;
-  color: var(--gold2); text-transform: uppercase; margin-top: 2px;
-}
-.nav-scroll {
-  display: flex; overflow-x: auto; margin-left: 12px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  flex: 1;
-}
-.nav-scroll::-webkit-scrollbar { display: none; }
-.nav-links { display: flex; list-style: none; }
-.nav-links a {
-  display: block; height: 54px; line-height: 54px;
-  padding: 0 10px;
-  font-family: var(--sc);
-  font-size: clamp(10px, 2vw, 12px);
-  letter-spacing: 0.08em;
-  color: var(--navy2); text-decoration: none;
-  border-bottom: 3px solid transparent;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-.nav-links a:hover { color: var(--gold2); border-bottom-color: var(--gold2); }
-
-main { margin-top: 90px; width: 100%; }
-
-/* ── SECTION WRAPPER ── */
-.sin {
-  width: 100%; max-width: 1280px;
-  margin: 0 auto;
-  padding: var(--py) var(--px);
-}
-.sec-head {
-  display: flex; align-items: baseline; gap: 12px;
-  margin-bottom: 36px; padding-bottom: 14px;
-  border-bottom: 2px solid var(--navy);
-}
-.sec-num { font-family: var(--mono); font-size: 10px; color: var(--gold2); letter-spacing: 0.2em; }
-.sec-ttl { font-family: var(--serif); font-size: clamp(22px, 5vw, 30px); font-weight: 400; color: var(--navy); }
-.sec-ttl-w { font-family: var(--serif); font-size: clamp(22px, 5vw, 30px); font-weight: 400; color: white; }
-.sec-num-w { font-family: var(--mono); font-size: 10px; color: var(--gold4); letter-spacing: 0.2em; }
-
-/* ── HERO ── */
-.hero {
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 60%, var(--teal) 100%);
-  padding: var(--py) var(--px);
-  position: relative; overflow: hidden;
-}
-.hero::before {
-  content: ''; position: absolute; inset: 0;
-  background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.hero-content { position: relative; z-index: 1; }
-.hero-eyebrow {
-  font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--gold4); margin-bottom: 16px;
-  display: flex; align-items: center; gap: 10px;
-}
-.hero-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--gold4); flex-shrink: 0; }
-.hero-name {
-  font-family: var(--serif);
-  font-size: clamp(36px, 8vw, 68px);
-  font-weight: 400; line-height: 1.05; color: white; margin-bottom: 6px;
-}
-.hero-ko { font-family: var(--body); font-size: 13px; color: rgba(255,255,255,0.6); letter-spacing: 0.12em; margin-bottom: 20px; }
-.hero-rule { width: 48px; height: 2px; background: var(--gold4); margin-bottom: 20px; }
-.hero-desc { font-family: var(--body); font-size: 14px; font-weight: 300; line-height: 1.85; color: rgba(255,255,255,0.88); margin-bottom: 28px; }
-.hero-desc strong { color: var(--gold4); font-weight: 600; }
-.hero-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
-.hpill {
-  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 5px 11px; border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07);
-}
-.hero-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-@media(min-width:640px){ .hero-layout { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; } }
-@media(min-width:1024px){ .hero-layout { grid-template-columns: 1fr 380px; } }
-.stat-box { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); padding: 16px; text-align: center; }
-.stat-val { font-family: var(--serif); font-size: clamp(28px,5vw,36px); color: var(--gold4); line-height: 1; }
-.stat-unit { font-family: var(--mono); font-size: 11px; color: var(--gold4); margin-bottom: 3px; }
-.stat-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-
-/* ── MARKET DASHBOARD ── */
-.mkt-sec { background: var(--navy2); border-bottom: 3px solid var(--gold2); }
-.mkt-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
-.mkt-ttl { font-family: var(--sc); font-size: clamp(15px,3vw,19px); letter-spacing: 0.08em; color: white; }
-.mkt-live { font-family: var(--mono); font-size: 9px; color: #4ade80; display: flex; align-items: center; gap: 5px; }
-.mkt-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: pulse 1.5s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: 0.2; } }
-
-/* charts grid: 1 col mobile, 2 col tablet, 4 col desktop */
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 12px;
-}
-@media(min-width:1024px){ .charts-grid { grid-template-columns: repeat(4,1fr); } }
-
-.chart-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); padding: 12px; }
-.chart-box-title { font-family: var(--sc); font-size: 10px; letter-spacing: 0.07em; color: rgba(255,255,255,0.65); margin-bottom: 2px; }
-.chart-box-val { font-family: var(--mono); font-size: clamp(14px,3vw,18px); font-weight: 500; color: white; margin-bottom: 2px; }
-.chart-box-chg { font-family: var(--mono); font-size: 10px; margin-bottom: 8px; }
-canvas.cbox { height: 56px !important; width: 100% !important; }
-
-/* rates: 2 col mobile, 3 col tablet, 6 col desktop */
-.rates-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-@media(min-width:640px){ .rates-grid { grid-template-columns: repeat(3,1fr); } }
-@media(min-width:1024px){ .rates-grid { grid-template-columns: repeat(6,1fr); } }
-
-.rate-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 10px 12px; }
-.rate-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.38); margin-bottom: 3px; }
-.rate-val { font-family: var(--mono); font-size: 13px; font-weight: 500; color: white; }
-.rate-chg { font-family: var(--mono); font-size: 10px; }
-
-/* ── EXPERTISE ── */
-/* 1 col mobile, 2 col tablet, 3 col desktop */
-.exp-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0; border: 2px solid var(--navy);
-}
-@media(min-width:640px){ .exp-grid { grid-template-columns: 1fr 1fr; } }
-@media(min-width:1024px){ .exp-grid { grid-template-columns: repeat(3,1fr); } }
-
-.exp-card { padding: 28px 22px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-@media(min-width:640px){ .exp-card { border-right: 1px solid rgba(255,255,255,0.1); } }
-.exp-card:last-child { border-bottom: none; }
-.exp-cn { font-family: var(--mono); font-size: 10px; opacity: 0.55; margin-bottom: 12px; letter-spacing: 0.14em; }
-.exp-icon { font-size: 24px; margin-bottom: 10px; display: block; }
-.exp-ct { font-family: var(--serif); font-size: 18px; font-weight: 500; margin-bottom: 10px; line-height: 1.2; }
-.exp-cd { font-family: var(--body); font-size: 13px; line-height: 1.75; margin-bottom: 14px; opacity: 0.9; }
-.exp-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.etag { font-family: var(--mono); font-size: 8px; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; border: 1px solid; opacity: 0.8; }
-.ec1{background:var(--navy);color:white;} .ec1 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-.ec2{background:var(--teal);color:white;} .ec2 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-.ec3{background:var(--green);color:white;} .ec3 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-.ec4{background:var(--purple);color:white;} .ec4 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-.ec5{background:var(--copper);color:white;} .ec5 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-.ec6{background:var(--gold);color:white;} .ec6 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
-
-/* ── CAREER TABLE ── */
-.c-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.c-tbl { width: 100%; min-width: 600px; border-collapse: collapse; }
-.c-tbl th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy2); padding: 0 12px 12px; text-align: left; border-bottom: 2px solid var(--navy); }
-.c-tbl th:first-child { padding-left: 0; }
-.c-tbl td { padding: 16px 12px; border-bottom: 1px solid var(--silver2); vertical-align: top; }
-.c-tbl td:first-child { padding-left: 0; }
-.c-tbl tr:last-child td { border-bottom: none; }
-.c-tbl tr:hover td { background: rgba(11,29,58,0.03); }
-.c-period { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--navy2); white-space: nowrap; }
-.c-role { font-family: var(--serif); font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 3px; }
-.c-org { font-family: var(--body); font-size: 12px; color: var(--text2); margin-bottom: 3px; font-weight: 600; }
-.c-det { font-family: var(--body); font-size: 11px; color: var(--text3); font-style: italic; }
-.bdg { display: inline-block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; font-weight: 600; color: white; white-space: nowrap; }
-.bdg-pl{background:var(--navy2);} .bdg-pm{background:var(--gold);} .bdg-dir{background:var(--green);} .bdg-adv{background:var(--teal);}
-/* mobile card hint */
-.tbl-hint { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-bottom: 8px; display: none; }
-@media(max-width:639px){ .tbl-hint { display: block; } }
-
-/* ── PUBLICATIONS ── */
-.books { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 28px; }
-@media(min-width:640px){ .books { grid-template-columns: 1fr 1fr; } }
-.book { background: linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%); padding: 28px; border-left: 4px solid var(--gold4); }
-.book-yr { font-family: var(--mono); font-size: 10px; color: var(--gold4); margin-bottom: 10px; }
-.book-ttl { font-family: var(--serif); font-size: 17px; font-style: italic; color: white; line-height: 1.4; margin-bottom: 8px; }
-.book-pub { font-family: var(--body); font-size: 11px; color: rgba(255,255,255,0.4); }
-.pubs { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media(min-width:640px){ .pubs { grid-template-columns: 1fr 1fr; } }
-.pub { background: var(--white); border: 1px solid var(--border); border-top: 3px solid var(--navy); padding: 22px; }
-.pub-yr { font-family: var(--mono); font-size: 10px; color: var(--gold2); margin-bottom: 8px; font-weight: 500; }
-.pub-ttl { font-family: var(--serif); font-size: 14px; font-style: italic; color: var(--navy); line-height: 1.5; margin-bottom: 7px; }
-.pub-jnl { font-family: var(--body); font-size: 12px; color: var(--text2); font-weight: 600; }
-.pub-award { font-family: var(--mono); font-size: 9px; color: var(--gold2); margin-top: 7px; display: flex; align-items: center; gap: 4px; }
-.pub-award::before { content: '★'; }
-
-/* ── FILE MANAGER ── */
-.fm-sec { background: var(--navy2); border-bottom: 3px solid var(--gold2); }
-.fm-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-@media(min-width:768px){ .fm-grid { grid-template-columns: 1fr 1fr; } }
-.fm-panel { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); padding: 24px; }
-.fm-panel-title { font-family: var(--sc); font-size: 16px; letter-spacing: 0.08em; color: white; margin-bottom: 5px; }
-.fm-panel-sub { font-family: var(--body); font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 18px; }
-.drop-zone { border: 2px dashed rgba(255,255,255,0.22); padding: 24px 12px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02); }
-.drop-zone:hover, .drop-zone.drag-over { border-color: var(--gold4); background: rgba(212,168,0,0.07); }
-.drop-icon { font-size: 30px; margin-bottom: 8px; display: block; }
-.drop-text { font-family: var(--body); font-size: 14px; color: rgba(255,255,255,0.78); margin-bottom: 4px; }
-.drop-sub { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.38); letter-spacing: 0.07em; }
-input[type=file] { display: none; }
-
-/* ── BUTTONS — always full-width on mobile ── */
-.btn-gold {
-  display: block; width: 100%; margin-top: 12px;
-  padding: 13px; background: var(--gold2); color: white;
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  cursor: pointer; border: none; font-weight: 600; transition: background 0.2s; text-align: center;
-}
-.btn-gold:hover { background: var(--gold3); }
-
-/* ── FILE LIST ITEMS ── */
-.file-list { margin-top: 16px; }
-.file-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  gap: 4px 10px;
-  padding: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  margin-bottom: 8px;
-}
-.file-icon { font-size: 22px; grid-row: 1/3; align-self: center; }
-.file-name { font-family: var(--body); font-size: 13px; color: white; font-weight: 600; word-break: break-all; }
-.file-meta { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.4); }
-.file-btns {
-  grid-column: 1/-1;
-  display: flex; gap: 8px; margin-top: 8px;
-}
-.btn-dl {
-  flex: 1; padding: 10px; background: var(--gold2); border: none; color: white;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  cursor: pointer; font-weight: 600; transition: background 0.2s; text-align: center;
-  min-height: 44px; /* touch target */
-}
-.btn-dl:hover { background: var(--gold3); }
-.btn-del {
-  padding: 10px 16px; background: rgba(139,26,26,0.4);
-  border: 1px solid rgba(185,28,28,0.5); color: rgba(255,255,255,0.8);
-  font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all 0.2s;
-  min-height: 44px; white-space: nowrap;
-}
-.btn-del:hover { background: #b91c1c; }
-.empty-msg { font-family: var(--body); font-size: 13px; color: rgba(255,255,255,0.35); text-align: center; padding: 18px; font-style: italic; }
-
-/* ── SAMPLE DOWNLOADS ── */
-.sample-file {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto auto;
-  gap: 3px 12px;
-  padding: 14px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.11);
-  margin-bottom: 8px;
-  transition: background 0.2s;
-}
-.sample-file:hover { background: rgba(255,255,255,0.09); }
-.sf-icon { font-size: 24px; grid-row: 1/4; align-self: center; }
-.sf-name { font-family: var(--body); font-size: 14px; color: white; font-weight: 600; }
-.sf-desc { font-family: var(--body); font-size: 11px; color: rgba(255,255,255,0.48); }
-.sf-dl-row {
-  grid-column: 1/-1;
-  display: flex; align-items: center; gap: 8px; margin-top: 8px;
-}
-.sf-tag { font-family: var(--mono); font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; color: var(--gold4); border: 1px solid var(--gold4); white-space: nowrap; }
-.sf-btn {
-  flex: 1; padding: 10px; background: var(--gold2); border: none; color: white;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  cursor: pointer; font-weight: 600; transition: background 0.2s; text-align: center;
-  min-height: 44px;
-}
-.sf-btn:hover { background: var(--gold3); }
-
-/* ── SECTION FILE PANELS ── */
-.sec-fm { margin-top: 36px; border: 1px solid var(--border); background: var(--white); }
-.sec-fm-header { background: var(--navy); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
-.sec-fm-title { font-family: var(--sc); font-size: 13px; letter-spacing: 0.1em; color: white; }
-.sec-fm-sub { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; }
-.sec-fm-body { padding: 18px; }
-.btn-upload-sm {
-  display: block; width: 100%; margin-bottom: 4px;
-  padding: 11px; background: var(--navy); border: none; color: white;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  cursor: pointer; font-weight: 600; transition: background 0.2s; text-align: center;
-  min-height: 44px;
-}
-.btn-upload-sm:hover { background: var(--navy3); }
-.sec-file-list { margin-top: 14px; }
-.sec-file-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto auto;
-  gap: 3px 10px;
-  padding: 12px;
-  background: var(--silver);
-  border: 1px solid var(--border);
-  margin-bottom: 6px;
-}
-.sfi-icon { font-size: 20px; grid-row: 1/4; align-self: center; }
-.sfi-name { font-family: var(--body); font-size: 13px; color: var(--navy); font-weight: 600; word-break: break-all; }
-.sfi-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-.sfi-btns {
-  grid-column: 1/-1;
-  display: flex; gap: 7px; margin-top: 8px;
-}
-.btn-sdl {
-  flex: 1; padding: 10px; background: var(--navy); border: none; color: white;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-  cursor: pointer; font-weight: 600; transition: background 0.2s; text-align: center;
-  min-height: 44px;
-}
-.btn-sdl:hover { background: var(--navy3); }
-.btn-sdel {
-  padding: 10px 14px; background: none; border: 1px solid var(--red); color: var(--red);
-  font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all 0.2s;
-  min-height: 44px; white-space: nowrap;
-}
-.btn-sdel:hover { background: var(--red); color: white; }
-.sec-empty { font-family: var(--body); font-size: 12px; color: var(--text3); font-style: italic; padding: 10px 0; }
-
-/* ── EDUCATION ── */
-.edu-row { padding: 20px 0; border-bottom: 1px solid var(--silver2); }
-.edu-row:last-child { border-bottom: none; }
-.edu-period { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--navy2); margin-bottom: 5px; }
-.edu-deg { font-family: var(--serif); font-size: clamp(18px,4vw,22px); font-weight: 400; color: var(--navy); margin-bottom: 4px; }
-.edu-sch { font-family: var(--body); font-size: 13px; color: var(--text2); font-weight: 600; }
-
-/* ── SKILLS ── */
-.sk-cols { display: grid; grid-template-columns: 1fr; gap: 32px; margin-top: 36px; }
-@media(min-width:640px){ .sk-cols { grid-template-columns: 1fr 1fr; } }
-@media(min-width:1024px){ .sk-cols { grid-template-columns: repeat(3,1fr); } }
-.sk-gt { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--navy2); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); }
-.sk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.sk-lbl { font-family: var(--body); font-size: 13px; font-weight: 600; color: var(--navy); width: 120px; flex-shrink: 0; }
-.sk-track { flex: 1; height: 4px; background: var(--silver2); border-radius: 2px; }
-.sk-fill { height: 100%; border-radius: 2px; transition: width 1.4s cubic-bezier(0.16,1,0.3,1); }
-.sk-navy { background: var(--navy); }
-.sk-gold { background: linear-gradient(90deg,var(--gold),var(--gold3)); }
-.sk-teal { background: linear-gradient(90deg,var(--teal),var(--teal2)); }
-.sk-pct { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--navy2); width: 32px; text-align: right; }
-
-/* ── CONTACT ── */
-.con-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--navy); border: 2px solid var(--navy); }
-@media(min-width:640px){ .con-grid { grid-template-columns: repeat(4,1fr); } }
-.con-card { background: var(--white); padding: 22px 18px; transition: background 0.2s; }
-.con-card:hover { background: var(--silver); }
-.con-lbl { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold2); margin-bottom: 8px; }
-.con-val { font-family: var(--serif); font-size: clamp(13px,2.5vw,16px); color: var(--navy); margin-bottom: 4px; font-weight: 500; word-break: break-all; }
-.con-sub { font-family: var(--body); font-size: 11px; color: var(--text2); font-weight: 600; }
-
-/* ── SECTION BG ── */
-.sec-white { background: var(--white); border-bottom: 1px solid var(--border); }
-.sec-silver { background: var(--silver); border-bottom: 1px solid var(--border); }
-
-/* ── FOOTER ── */
-footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
-.f-l { font-family: var(--serif); font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.65); margin-bottom: 8px; }
-.f-r { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.28); }
-
-/* ── ANIMATE ── */
-.fade-up { opacity: 0; transform: translateY(12px); transition: opacity 0.6s ease, transform 0.6s ease; }
-.fade-up.visible { opacity: 1; transform: none; }
-
-/* ── ADMIN AUTH ── */
-.admin-lock { display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:rgba(139,26,26,0.3);border:1px solid rgba(139,26,26,0.5);color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.2s; }
-.admin-lock:hover{background:rgba(139,26,26,0.5);}
-.admin-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;}
-.admin-modal.show{display:flex;}
-.admin-box{background:var(--navy2);border:1px solid var(--gold2);padding:32px;width:90%;max-width:360px;}
-.admin-title{font-family:var(--sc);font-size:18px;color:white;margin-bottom:8px;}
-.admin-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;}
-.admin-input{width:100%;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:var(--mono);font-size:14px;margin-bottom:12px;outline:none;}
-.admin-input:focus{border-color:var(--gold2);}
-.admin-btns{display:flex;gap:10px;}
-.admin-ok{flex:1;padding:12px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;}
-.admin-ok:hover{background:var(--gold3);}
-.admin-cancel{padding:12px 16px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:var(--mono);font-size:11px;cursor:pointer;}
-.admin-err{font-family:var(--mono);font-size:11px;color:#f87171;margin-top:8px;display:none;}
-/* file share styles */
-.share-badge{font-family:var(--mono);font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--gold4);color:var(--gold4);}
-.file-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.45);margin-left:auto;}
-
-
-/* ═══ FILE SHARE SYSTEM ═══ */
-.share-sec{background:linear-gradient(135deg,var(--navy2) 0%,var(--teal) 100%);border-bottom:3px solid var(--gold2);}
-.share-in{max-width:1280px;margin:0 auto;padding:var(--py) var(--px);}
-.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;}
-@media(max-width:768px){.share-grid{grid-template-columns:1fr;}}
+.lib-sec{background:linear-gradient(135deg,var(--navy2) 0%,var(--teal) 100%);border-bottom:3px solid var(--gold2);}
+.lib-in{max-width:1280px;margin:0 auto;padding:var(--py) var(--px);}
+.lib-grid{display:grid;grid-template-columns:1fr;gap:24px;margin-top:8px;}
+@media(min-width:768px){.lib-grid{grid-template-columns:1fr 1fr;}}
 
 /* Upload panel */
-.up-panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);padding:28px;}
-.up-title{font-family:var(--sc);font-size:17px;letter-spacing:0.08em;color:white;margin-bottom:6px;}
-.up-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;}
-.up-drop{border:2px dashed rgba(255,255,255,0.22);padding:28px 12px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.02);}
-.up-drop:hover,.up-drop.over{border-color:var(--gold4);background:rgba(212,168,0,0.07);}
-.up-drop-icon{font-size:32px;margin-bottom:8px;display:block;}
-.up-drop-text{font-family:var(--body);font-size:14px;color:rgba(255,255,255,0.78);margin-bottom:4px;}
-.up-drop-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.07em;}
-.up-btn{display:block;width:100%;margin-top:12px;padding:13px;background:var(--gold2);color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border:none;font-weight:600;text-align:center;transition:background 0.2s;}
-.up-btn:hover{background:var(--gold3);}
-.up-progress{display:none;margin-top:12px;background:rgba(255,255,255,0.1);height:6px;border-radius:3px;overflow:hidden;}
-.up-progress-bar{height:100%;background:var(--gold3);width:0%;transition:width 0.3s;border-radius:3px;}
-.up-msg{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.6);margin-top:8px;min-height:16px;text-align:center;}
+.lib-panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);padding:28px;}
+.lib-panel-title{font-family:var(--sc);font-size:17px;letter-spacing:0.08em;color:white;margin-bottom:6px;}
+.lib-panel-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;line-height:1.6;}
+.lib-drop{border:2px dashed rgba(255,255,255,0.22);padding:28px 12px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.02);}
+.lib-drop:hover,.lib-drop.over{border-color:var(--gold4);background:rgba(212,168,0,0.07);}
+.lib-drop-icon{font-size:32px;margin-bottom:8px;display:block;}
+.lib-drop-text{font-family:var(--body);font-size:14px;color:rgba(255,255,255,0.78);margin-bottom:4px;}
+.lib-drop-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.07em;}
+.lib-btn{display:block;width:100%;margin-top:12px;padding:14px;background:var(--gold2);color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border:none;font-weight:600;text-align:center;transition:background 0.2s;min-height:48px;}
+.lib-btn:hover{background:var(--gold3);}
+.lib-prog{display:none;margin-top:12px;background:rgba(255,255,255,0.1);height:6px;border-radius:3px;overflow:hidden;}
+.lib-prog-bar{height:100%;background:var(--gold3);width:0%;transition:width 0.3s;border-radius:3px;}
+.lib-msg{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.6);margin-top:8px;min-height:16px;text-align:center;}
+/* File list panel */
+.lib-list-wrap{max-height:480px;overflow-y:auto;}
+.lib-list-wrap::-webkit-scrollbar{width:3px;}
+.lib-list-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);}
+.lib-file{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:3px 10px;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:8px;transition:background 0.2s;}
+.lib-file:hover{background:rgba(255,255,255,0.09);}
+.lib-file-icon{font-size:22px;grid-row:1/4;align-self:center;}
+.lib-file-name{font-family:var(--body);font-size:13px;color:white;font-weight:600;word-break:break-all;}
+.lib-file-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);}
+.lib-file-btns{grid-column:1/-1;display:flex;gap:8px;margin-top:8px;}
+.lib-dl{flex:1;padding:11px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;text-align:center;min-height:44px;transition:background 0.2s;}
+.lib-dl:hover{background:var(--gold3);}
+.lib-del{padding:11px 14px;background:rgba(139,26,26,0.4);border:1px solid rgba(185,28,28,0.5);color:rgba(255,255,255,0.8);font-family:var(--mono);font-size:10px;cursor:pointer;min-height:44px;transition:all 0.2s;white-space:nowrap;}
+.lib-del:hover{background:#b91c1c;border-color:#b91c1c;}
+.lib-empty{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:28px;font-style:italic;}
+.lib-loading{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.5);text-align:center;padding:24px;}
+.lib-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);margin-left:auto;}
 
-/* File list */
-.fl-panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);padding:28px;}
-.fl-title{font-family:var(--sc);font-size:17px;letter-spacing:0.08em;color:white;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
-.fl-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);margin-left:auto;}
-.fl-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:16px;}
-.fl-list{max-height:420px;overflow-y:auto;}
-.fl-list::-webkit-scrollbar{width:3px;}
-.fl-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);}
-.fl-item{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:3px 10px;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:8px;transition:background 0.2s;}
-.fl-item:hover{background:rgba(255,255,255,0.09);}
-.fl-icon{font-size:22px;grid-row:1/4;align-self:center;}
-.fl-name{font-family:var(--body);font-size:13px;color:white;font-weight:600;word-break:break-all;}
-.fl-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);}
-.fl-btns{grid-column:1/-1;display:flex;gap:8px;margin-top:8px;}
-.fl-dl{flex:1;padding:10px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;text-align:center;min-height:44px;transition:background 0.2s;}
-.fl-dl:hover{background:var(--gold3);}
-.fl-del{padding:10px 14px;background:rgba(139,26,26,0.4);border:1px solid rgba(185,28,28,0.5);color:rgba(255,255,255,0.8);font-family:var(--mono);font-size:10px;cursor:pointer;min-height:44px;transition:all 0.2s;}
-.fl-del:hover{background:#b91c1c;}
-.fl-empty{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:24px;font-style:italic;}
-.fl-loading{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.5);text-align:center;padding:20px;}
+/* EDUCATION */
+.edu-row{padding:20px 0;border-bottom:1px solid var(--silver2);}
+.edu-row:last-child{border-bottom:none;}
+.edu-period{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);margin-bottom:5px;}
+.edu-deg{font-family:var(--serif);font-size:clamp(18px,4vw,22px);font-weight:400;color:var(--navy);margin-bottom:4px;}
+.edu-sch{font-family:var(--body);font-size:13px;color:var(--text2);font-weight:600;}
 
-/* Admin modal */
-.adm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;}
-.adm-modal.show{display:flex;}
-.adm-box{background:var(--navy2);border:2px solid var(--gold2);padding:36px;width:90%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
-.adm-title{font-family:var(--sc);font-size:20px;color:white;margin-bottom:8px;}
-.adm-sub{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:24px;}
-.adm-inp{width:100%;padding:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:var(--mono);font-size:15px;margin-bottom:14px;outline:none;letter-spacing:0.1em;}
-.adm-inp:focus{border-color:var(--gold2);}
-.adm-btns{display:flex;gap:10px;}
-.adm-ok{flex:1;padding:13px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;transition:background 0.2s;}
-.adm-ok:hover{background:var(--gold3);}
-.adm-cancel{padding:13px 18px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;}
-.adm-cancel:hover{border-color:rgba(255,255,255,0.4);color:white;}
-.adm-err{font-family:var(--mono);font-size:11px;color:#f87171;margin-top:10px;display:none;text-align:center;}
+/* SKILLS */
+.sk-cols{display:grid;grid-template-columns:1fr;gap:32px;margin-top:36px;}
+@media(min-width:640px){.sk-cols{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.sk-cols{grid-template-columns:repeat(3,1fr);}}
+.sk-gt{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--navy2);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--navy);}
+.sk-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.sk-lbl{font-family:var(--body);font-size:13px;font-weight:600;color:var(--navy);width:120px;flex-shrink:0;}
+.sk-track{flex:1;height:4px;background:var(--silver2);border-radius:2px;}
+.sk-fill{height:100%;border-radius:2px;transition:width 1.4s cubic-bezier(0.16,1,0.3,1);}
+.sk-navy{background:var(--navy);}.sk-gold{background:linear-gradient(90deg,var(--gold),var(--gold3));}.sk-teal{background:linear-gradient(90deg,var(--teal),var(--teal2));}
+.sk-pct{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);width:32px;text-align:right;}
 
+/* CONTACT */
+.con-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--navy);border:2px solid var(--navy);}
+@media(min-width:640px){.con-grid{grid-template-columns:repeat(4,1fr);}}
+.con-card{background:var(--white);padding:22px 18px;transition:background 0.2s;}
+.con-card:hover{background:var(--silver);}
+.con-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold2);margin-bottom:8px;}
+.con-val{font-family:var(--serif);font-size:clamp(13px,2.5vw,16px);color:var(--navy);margin-bottom:4px;font-weight:500;word-break:break-all;}
+.con-sub{font-family:var(--body);font-size:11px;color:var(--text2);font-weight:600;}
+
+/* FOOTER */
+footer{background:var(--navy);padding:28px var(--px);text-align:center;}
+.f-l{font-family:var(--serif);font-size:15px;font-weight:300;color:rgba(255,255,255,0.65);margin-bottom:8px;}
+.f-r{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.28);}
+
+/* ANIMATE */
+.fade-up{opacity:0;transform:translateY(12px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.fade-up.visible{opacity:1;transform:none;}
+
+/* ═══ PASSWORD MODAL ═══ */
+.pw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;}
+.pw-overlay.show{display:flex;}
+.pw-box{background:var(--navy2);border:2px solid var(--gold2);padding:36px;width:90%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.6);}
+.pw-icon{font-size:36px;text-align:center;margin-bottom:12px;}
+.pw-title{font-family:var(--sc);font-size:20px;color:white;margin-bottom:8px;text-align:center;}
+.pw-sub{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:24px;text-align:center;line-height:1.6;}
+.pw-input{width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:var(--mono);font-size:16px;margin-bottom:14px;outline:none;letter-spacing:0.15em;text-align:center;}
+.pw-input:focus{border-color:var(--gold2);}
+.pw-btns{display:flex;gap:10px;}
+.pw-ok{flex:1;padding:14px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;transition:background 0.2s;min-height:48px;}
+.pw-ok:hover{background:var(--gold3);}
+.pw-cancel{padding:14px 20px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;min-height:48px;}
+.pw-cancel:hover{border-color:rgba(255,255,255,0.4);color:white;}
+.pw-err{font-family:var(--mono);font-size:11px;color:#f87171;margin-top:12px;display:none;text-align:center;padding:8px;background:rgba(139,26,26,0.3);border:1px solid rgba(185,28,28,0.4);}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="tb-brand">AIQuant Financial Engineering Research</div>
   <div class="tb-mkt" id="tb"></div>
@@ -783,7 +267,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 <nav>
   <div class="nav-inner">
     <div class="nav-logo">
-      <div class="nav-logo-main">AIQuant FER </div>
+      <div class="nav-logo-main">AIQuant FER</div>
       <div class="nav-logo-sub">Lee Hong Jae · PhD</div>
     </div>
     <div class="nav-scroll">
@@ -792,8 +276,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
         <li><a href="#markets">Markets</a></li>
         <li><a href="#career">Experience</a></li>
         <li><a href="#publications">Research</a></li>
-        <li><a href="#files">Files</a></li>
-        <li><a href="#fileshare">Library</a></li>
+        <li><a href="#library">Library</a></li>
         <li><a href="#education">Education</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
@@ -805,46 +288,39 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-content" style="max-width:1280px;margin:0 auto;">
-    <div class="hero-layout">
-      <div>
-        <div class="hero-eyebrow">PhD · Quantitative Finance · Financial Engineering</div>
-        <h1 class="hero-name">Ph.D. Lee Hong Jae</h1>
-        <div class="hero-ko">Pro Quant· Charles Leeㆍ https://www.facebook.com/share/1CNHLezm6E/ </div>
-        <div class="hero-rule"></div>
-        <p class="hero-desc">Senior quantitative finance professional with a <strong>PhD in Finance)</strong> from Kyung Hee University. Two decades of institutional experience across <strong>risk management</strong>, <strong>asset allocation</strong>, <strong>derivatives pricing</strong>, and <strong>AI-driven financial analytics</strong>. Project leadership at PwC Samil, KPMG, Ernst &amp; Young, Deloitte, and Korea Exchange (KRX).</p>
-        <div class="hero-pills">
-          <span class="hpill">Asset allocation and investment strategies, including Black–Litterman and others</span><span class="hpill">CreditMetrics</span><span class="hpill">Basel II/III</span><span class="hpill">VaR/CVaR</span><span class="hpill">Derivatives</span><span class="hpill">Deep Learning</span><span class="hpill">ALM/TAA/SAA</span><span class="hpill">Various numerical analysis methodologies, including Monte Carlo methods(</span>
-        </div>
-      </div>
-      <div class="hero-stats" style="margin-top:24px;">
-        <div class="stat-box"><div class="stat-unit">PhD</div><div class="stat-lbl">Finance · Kyung Hee Univ.</div></div>
-        <div class="stat-box"><div class="stat-val">20+</div><div class="stat-lbl">Years Experience</div></div>
-        <div class="stat-box"><div class="stat-val">2</div><div class="stat-lbl">Books Published</div></div>
-        <div class="stat-box"><div class="stat-val">25+</div><div class="stat-lbl">Academic Papers</div></div>
-      </div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">PhD · Quantitative Finance · Financial Engineering</div>
+    <h1 class="hero-name">Lee Hong Jae</h1>
+    <div class="hero-ko">이홍재 · 李 洪 載 · Charles Lee</div>
+    <div class="hero-rule"></div>
+    <p class="hero-desc">Senior quantitative finance professional with a <strong>PhD in Business Administration (Finance)</strong> from Kyung Hee University. Two decades of institutional experience across <strong>risk management</strong>, <strong>asset allocation</strong>, <strong>derivatives pricing</strong>, and <strong>AI-driven financial analytics</strong>.</p>
+    <div class="hero-pills">
+      <span class="hpill">Black-Litterman</span><span class="hpill">CreditMetrics</span><span class="hpill">Basel II/III</span><span class="hpill">VaR/CVaR</span><span class="hpill">Derivatives</span><span class="hpill">Deep Learning</span><span class="hpill">ALM/SAA</span><span class="hpill">Monte Carlo</span>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-box"><div class="stat-unit">PhD</div><div class="stat-lbl">Finance · Kyung Hee</div></div>
+      <div class="stat-box"><div class="stat-val">20+</div><div class="stat-lbl">Years Experience</div></div>
+      <div class="stat-box"><div class="stat-val">2</div><div class="stat-lbl">Books Published</div></div>
+      <div class="stat-box"><div class="stat-val">25+</div><div class="stat-lbl">Academic Papers</div></div>
     </div>
   </div>
 </section>
 
-<!-- MARKET DASHBOARD -->
+<!-- MARKET -->
 <div class="mkt-sec" id="markets">
-  <div class="sin" style="padding-top:32px;padding-bottom:32px;">
-    <div class="mkt-hdr">
-      <div class="mkt-ttl">Global Market Dashboard</div>
-      <div class="mkt-live" id="mkt-status">데이터 로딩중...</div>
-    </div>
+  <div class="mkt-in">
+    <div class="mkt-hdr"><div class="mkt-ttl">Global Market Dashboard</div><div class="mkt-live" id="mkt-status">데이터 로딩중...</div></div>
     <div class="charts-grid">
-      <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val" id="val-c0">로딩중...</div><div class="chart-box-chg" id="chg-c0">--</div><canvas id="c0" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">S&amp;P 500 Index</div><div class="chart-box-val" id="val-c1">로딩중...</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val" id="val-c2">로딩중...</div><div class="chart-box-chg" id="chg-c2">--</div><canvas id="c2" class="cbox"></canvas></div>
-      <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val" id="val-c3">로딩중...</div><div class="chart-box-chg" id="chg-c3">--</div><canvas id="c3" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val" id="val-c0">--</div><div class="chart-box-chg" id="chg-c0">--</div><canvas id="c0" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">S&amp;P 500</div><div class="chart-box-val" id="val-c1">--</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val" id="val-c2">--</div><div class="chart-box-chg" id="chg-c2">--</div><canvas id="c2" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val" id="val-c3">--</div><div class="chart-box-chg" id="chg-c3">--</div><canvas id="c3" class="cbox"></canvas></div>
     </div>
     <div class="rates-grid">
       <div class="rate-card" id="r-eurusd"><div class="rate-lbl">EUR/USD</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
       <div class="rate-card" id="r-usdjpy"><div class="rate-lbl">USD/JPY</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
-      <div class="rate-card" id="r-spy"><div class="rate-lbl">S&amp;P 500</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
-      <div class="rate-card" id="r-qqq"><div class="rate-lbl">NASDAQ</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-sp500"><div class="rate-lbl">S&amp;P 500</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-nasdaq"><div class="rate-lbl">NASDAQ</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
       <div class="rate-card"><div class="rate-lbl">KTB 10Y</div><div class="rate-val">3.245%</div><div class="rate-chg t-dn">▼−2bps</div></div>
       <div class="rate-card"><div class="rate-lbl">BOK Base</div><div class="rate-val">3.50%</div><div class="rate-chg" style="color:rgba(255,255,255,0.4)">HOLD</div></div>
     </div>
@@ -856,20 +332,12 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
   <div class="sin">
     <div class="sec-head fade-up"><div class="sec-num">01</div><h2 class="sec-ttl">Areas of Expertise</h2></div>
     <div class="exp-grid fade-up">
-      <div class="exp-card ec1"><div class="exp-cn">01</div><div class="exp-icon">⬡</div><div class="exp-ct">Quantitative Risk Systems</div><div class="exp-cd">Settlement risk, market VaR, credit risk via CreditMetrics and KMV EDF. Enterprise risk systems for BC Card, Woori Bank, KRX, and Korea Post Insurance. Extreme VaR using GPD/GEV, RAAS/RADARS/RAMS.</div><div class="exp-tags"><span class="etag">VaR/CVaR</span><span class="etag">Extreme VaR</span><span class="etag">CreditMetrics</span><span class="etag">KMV EDF</span><span class="etag">Copula</span></div></div>
-      <div class="exp-card ec2"><div class="exp-cn">02</div><div class="exp-icon">◈</div><div class="exp-ct">Strategic Asset Allocation</div><div class="exp-cd">Black-Litterman inverse optimization, Risk-Budgeting, MVO, and ALM-based SAA with actuarial funded-ratio models. Delivered for NH Mutual Finance, Public School Pension, Korea Post Finance.</div><div class="exp-tags"><span class="etag">Black-Litterman</span><span class="etag">MVO</span><span class="etag">Risk Budgeting</span><span class="etag">ALM/SAA</span></div></div>
-      <div class="exp-card ec3"><div class="exp-cn">03</div><div class="exp-icon">△</div><div class="exp-ct">Derivatives Pricing &amp; Hedging</div><div class="exp-cd">Option pricing via CGMY Levy process, Merton Jump-Diffusion, Variance Gamma, Neural Network deep hedging (SNN/RNN). Barrier options, payers' swaption replication, Copula-based first-to-default CDX.</div><div class="exp-tags"><span class="etag">Black-Scholes</span><span class="etag">CGMY</span><span class="etag">Swaption</span><span class="etag">Monte Carlo</span></div></div>
-      <div class="exp-card ec4"><div class="exp-cn">04</div><div class="exp-icon">▦</div><div class="exp-ct">Basel II / III Credit Risk</div><div class="exp-cd">CreditManager™ (MSCI) full deployment for IRB economic capital. Stress tests via Credit Cycle Index. KMV EDF implicit default probability. OPMS design with Conditional VaR at Hana Bank.</div><div class="exp-tags"><span class="etag">Basel II/III</span><span class="etag">IRB</span><span class="etag">CreditManager</span><span class="etag">Stress Test</span></div></div>
-      <div class="exp-card ec5"><div class="exp-cn">05</div><div class="exp-icon">◉</div><div class="exp-ct">AI &amp; Machine Learning Finance</div><div class="exp-cd">Stock prediction via Random Forest, XGBoost, LSTM, GRU, Transformer (TFT), GNN/GCN. Volatility: EGARCH, APARCH, Wavelet-LSTM. FinBERT sentiment. RL trading via DQN/PPO.</div><div class="exp-tags"><span class="etag">LSTM/GRU</span><span class="etag">XGBoost</span><span class="etag">Transformer</span><span class="etag">GNN</span><span class="etag">FinBERT</span></div></div>
-      <div class="exp-card ec6"><div class="exp-cn">06</div><div class="exp-icon">◆</div><div class="exp-ct">Corporate Valuation &amp; Capital</div><div class="exp-cd">WACC/APV (Grinblatt-Titman &amp; Miles-Ezzell), EVA, DCF automation, MM optimal capital structure, CAPM/Hamada beta. Financial stability analysis for Korea Hydro &amp; Nuclear Power.</div><div class="exp-tags"><span class="etag">DCF/APV</span><span class="etag">EVA</span><span class="etag">WACC</span><span class="etag">CAPM</span></div></div>
-    </div>
-    <div class="sec-fm fade-up">
-      <div class="sec-fm-header"><div class="sec-fm-title">Expertise Documents</div><div class="sec-fm-sub">Upload / Download</div></div>
-      <div class="sec-fm-body">
-        <input type="file" id="fi-exp" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-exp').click()">📁 Upload File</button>
-        <div class="sec-file-list" id="fl-exp"></div>
-      </div>
+      <div class="exp-card ec1"><div class="exp-cn">01</div><div class="exp-icon">⬡</div><div class="exp-ct">Quantitative Risk Systems</div><div class="exp-cd">Settlement risk, market VaR, credit risk via CreditMetrics and KMV EDF. Enterprise risk systems for BC Card, Woori Bank, KRX, and Korea Post Insurance.</div><div class="exp-tags"><span class="etag">VaR/CVaR</span><span class="etag">CreditMetrics</span><span class="etag">KMV EDF</span><span class="etag">Copula</span></div></div>
+      <div class="exp-card ec2"><div class="exp-cn">02</div><div class="exp-icon">◈</div><div class="exp-ct">Strategic Asset Allocation</div><div class="exp-cd">Black-Litterman inverse optimization, Risk-Budgeting, MVO, and ALM-based SAA. Delivered for NH Mutual Finance, Public School Pension, Korea Post Finance.</div><div class="exp-tags"><span class="etag">Black-Litterman</span><span class="etag">MVO</span><span class="etag">Risk Budgeting</span><span class="etag">ALM/SAA</span></div></div>
+      <div class="exp-card ec3"><div class="exp-cn">03</div><div class="exp-icon">△</div><div class="exp-ct">Derivatives Pricing &amp; Hedging</div><div class="exp-cd">Option pricing via CGMY Levy process, Merton Jump-Diffusion, Variance Gamma, Neural Network deep hedging (SNN/RNN). Barrier options, swaption replication.</div><div class="exp-tags"><span class="etag">Black-Scholes</span><span class="etag">CGMY</span><span class="etag">Swaption</span><span class="etag">Monte Carlo</span></div></div>
+      <div class="exp-card ec4"><div class="exp-cn">04</div><div class="exp-icon">▦</div><div class="exp-ct">Basel II / III Credit Risk</div><div class="exp-cd">CreditManager™ (MSCI) full deployment for IRB economic capital. Stress tests via Credit Cycle Index. KMV EDF implicit default probability. OPMS design at Hana Bank.</div><div class="exp-tags"><span class="etag">Basel II/III</span><span class="etag">IRB</span><span class="etag">CreditManager</span><span class="etag">Stress Test</span></div></div>
+      <div class="exp-card ec5"><div class="exp-cn">05</div><div class="exp-icon">◉</div><div class="exp-ct">AI &amp; Machine Learning Finance</div><div class="exp-cd">Stock prediction via Random Forest, XGBoost, LSTM, GRU, Transformer (TFT), GNN/GCN. Volatility: EGARCH, APARCH. FinBERT sentiment. RL trading via DQN/PPO.</div><div class="exp-tags"><span class="etag">LSTM/GRU</span><span class="etag">XGBoost</span><span class="etag">Transformer</span><span class="etag">GNN</span><span class="etag">FinBERT</span></div></div>
+      <div class="exp-card ec6"><div class="exp-cn">06</div><div class="exp-icon">◆</div><div class="exp-ct">Corporate Valuation &amp; Capital</div><div class="exp-cd">WACC/APV (Grinblatt-Titman &amp; Miles-Ezzell), EVA, DCF automation, MM optimal capital structure, CAPM/Hamada beta. Korea Hydro &amp; Nuclear Power financial analysis.</div><div class="exp-tags"><span class="etag">DCF/APV</span><span class="etag">EVA</span><span class="etag">WACC</span><span class="etag">CAPM</span></div></div>
     </div>
   </div>
 </div>
@@ -878,7 +346,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 <div class="sec-white" id="career">
   <div class="sin">
     <div class="sec-head fade-up"><div class="sec-num">02</div><h2 class="sec-ttl">Professional Experience</h2></div>
-    <div class="tbl-hint">← Scroll table horizontally</div>
+    <div class="tbl-hint">← 표를 가로로 스크롤하세요</div>
     <div class="c-wrap fade-up">
       <table class="c-tbl">
         <thead><tr><th style="width:88px">Period</th><th>Project &amp; Description</th><th style="width:64px">Role</th><th>Client</th></tr></thead>
@@ -887,21 +355,13 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
           <tr><td><div class="c-period">2019</div></td><td><div class="c-role">Asset Allocation — Black-Litterman &amp; Performance</div><div class="c-org">Ernst &amp; Young</div><div class="c-det">SAA measurement, Black-Litterman &amp; Risk-Budgeting optimization</div></td><td><span class="bdg bdg-pl">PL</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NH Mutual Finance</td></tr>
           <tr><td><div class="c-period">2016</div></td><td><div class="c-role">Credit Risk Measurement System</div><div class="c-org">Deloitte &amp; Two L</div><div class="c-det">CreditManager (MSCI), Credit Cycle Index, KMV EDF, Copula</div></td><td><span class="bdg bdg-pl">PL</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NH Insurance</td></tr>
           <tr><td><div class="c-period">2014–2017</div></td><td><div class="c-role">CEO — Quantum Fund Holdings</div><div class="c-org">Independent</div><div class="c-det">AI investment strategies, quantitative research, fintech advisory</div></td><td><span class="bdg bdg-dir">CEO</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Proprietary</td></tr>
-          <tr><td><div class="c-period">2013–2014</div></td><td><div class="c-role">CFO — QuantMatrix Platform</div><div class="c-org">NEOPM</div><div class="c-det">Stock portfolio, price forecasting, valuation automation</div></td><td><span class="bdg bdg-dir">CEO</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NEOPM/KISDI</td></tr>
+          <tr><td><div class="c-period">2013–2014</div></td><td><div class="c-role">CEO — QuantMatrix Platform</div><div class="c-org">NEOPM</div><div class="c-det">Stock portfolio, price forecasting, valuation automation</div></td><td><span class="bdg bdg-dir">CEO</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NEOPM/KISDI</td></tr>
           <tr><td><div class="c-period">2011</div></td><td><div class="c-role">Asset Allocation — Public School Pension</div><div class="c-org">KPMG Freelance</div><div class="c-det">ALM-based SAA, MVO / Black-Litterman / Risk-Budgeting</div></td><td><span class="bdg bdg-adv">Adv</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Pension Fund</td></tr>
-          <tr><td><div class="c-period">2009</div></td><td><div class="c-role">Settlement Risk — Korea Exchange</div><div class="c-org">PwC Samil</div><div class="c-det">Market VaR, Extreme VaR (GPD/GEV), RAAS/RADARS/RAMS</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">KRX</td></tr>
-          <tr><td><div class="c-period">2008–2009</div></td><td><div class="c-role">Senior Manager — Enterprise Risk Projects</div><div class="c-org">PwC Samil</div><div class="c-det">BC Card ERM/BCP, Korea Post Insurance RAAS</div></td><td><span class="bdg bdg-dir">Dir</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Multiple</td></tr>
-          <tr><td><div class="c-period">2006–2007</div></td><td><div class="c-role">Basel II — CreditManager™</div><div class="c-org">Korea Risk Management</div><div class="c-det">IRB economic capital, OPMS, Hana Bank MtM &amp; CVaR</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Woori/Kyongnam/Hana</td></tr>
+          <tr><td><div class="c-period">2009</div></td><td><div class="c-role">Settlement Risk — Korea Exchange (KRX)</div><div class="c-org">PwC Samil</div><div class="c-det">Market VaR, Extreme VaR (GPD/GEV), RAAS/RADARS/RAMS</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">KRX</td></tr>
+          <tr><td><div class="c-period">2008–2009</div></td><td><div class="c-role">Director — Enterprise Risk Projects</div><div class="c-org">PwC Samil</div><div class="c-det">BC Card ERM/BCP, Korea Post Insurance RAAS</div></td><td><span class="bdg bdg-dir">Dir</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Multiple</td></tr>
+          <tr><td><div class="c-period">2006–2007</div></td><td><div class="c-role">Basel II — CreditManager™</div><div class="c-org">Korea Risk Management (KRM)</div><div class="c-det">IRB economic capital, OPMS, Hana Bank MtM &amp; CVaR</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Woori/Kyongnam/Hana</td></tr>
         </tbody>
       </table>
-    </div>
-    <div class="sec-fm fade-up">
-      <div class="sec-fm-header"><div class="sec-fm-title">Career Documents</div><div class="sec-fm-sub">Reports · Certificates</div></div>
-      <div class="sec-fm-body">
-        <input type="file" id="fi-car" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-car').click()">📁 Upload File</button>
-        <div class="sec-file-list" id="fl-car"></div>
-      </div>
     </div>
   </div>
 </div>
@@ -924,77 +384,91 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
       <div class="pub"><div class="pub-yr">2004</div><div class="pub-ttl">Effective Financial Strategy and VBM for Korea Railway Business</div><div class="pub-jnl">Ministry of Railways</div><div class="pub-award">Best Paper Award</div></div>
       <div class="pub"><div class="pub-yr">2002</div><div class="pub-ttl">Valuation Using WACC and APV by Grinblatt-Titman and Miles-Ezzell</div><div class="pub-jnl">Korea Enterprise Evaluation Institute</div><div class="pub-award">Best Paper Award · SMBA</div></div>
     </div>
-    <div class="sec-fm fade-up">
-      <div class="sec-fm-header"><div class="sec-fm-title">Research Paper Files</div><div class="sec-fm-sub">Papers · Data</div></div>
-      <div class="sec-fm-body">
-        <input type="file" id="fi-pub" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-pub').click()">📁 Upload File</button>
-        <div class="sec-file-list" id="fl-pub"></div>
+  </div>
+</div>
+
+<!-- ═══ FILE LIBRARY ═══ -->
+<div class="lib-sec" id="library">
+  <div class="lib-in">
+    <div class="sec-head fade-up" style="border-bottom-color:rgba(255,255,255,0.2);">
+      <div class="sec-num-w">04</div>
+      <h2 class="sec-ttl-w">Research File Library</h2>
+    </div>
+    <div class="lib-grid fade-up">
+
+      <!-- UPLOAD PANEL -->
+      <div class="lib-panel">
+        <div class="lib-panel-title">📤 파일 업로드</div>
+        <div class="lib-panel-sub">
+          연구자료, 논문, 데이터파일을 업로드하세요<br>
+          <span style="color:var(--gold4);font-weight:600;">✓ 누구나 다운로드 가능</span> &nbsp;·&nbsp;
+          <span style="color:#f87171;">🔐 업로드/삭제는 관리자만</span>
+        </div>
+        <div class="lib-drop" id="libDrop">
+          <span class="lib-drop-icon">📂</span>
+          <div class="lib-drop-text">파일을 여기에 드래그하거나 탭하세요</div>
+          <div class="lib-drop-sub">DOCX · XLSX · PDF · CSV · PNG · PPTX · PY · ZIP</div>
+        </div>
+        <input type="file" id="libInput" multiple style="display:none" accept=".docx,.xlsx,.pdf,.csv,.png,.jpg,.pptx,.py,.txt,.zip">
+        <button class="lib-btn" onclick="libUploadClick()">🔐 관리자 로그인 후 업로드</button>
+        <div class="lib-prog" id="libProg"><div class="lib-prog-bar" id="libBar"></div></div>
+        <div class="lib-msg" id="libMsg"></div>
+      </div>
+
+      <!-- FILE LIST PANEL -->
+      <div class="lib-panel">
+        <div class="lib-panel-title" style="display:flex;align-items:center;">
+          📚 업로드된 파일
+          <span class="lib-count" id="libCount">로딩중...</span>
+        </div>
+        <div class="lib-panel-sub">모든 방문자가 무료로 다운로드할 수 있습니다</div>
+        <div class="lib-list-wrap" id="libList">
+          <div class="lib-loading">⏳ 파일 목록 로딩중...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDUCATION -->
+<div class="sec-white" id="education">
+  <div class="sin">
+    <div class="sec-head fade-up"><div class="sec-num">05</div><h2 class="sec-ttl">Education</h2></div>
+    <div class="fade-up">
+      <div class="edu-row"><div class="edu-period">1997 – 2001</div><div class="edu-deg">PhD in Business Administration (Finance)</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+      <div class="edu-row"><div class="edu-period">1993 – 1997</div><div class="edu-deg">Master's in Business Administration (Finance)</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+      <div class="edu-row"><div class="edu-period">1985 – 1992</div><div class="edu-deg">Bachelor's in Business Administration</div><div class="edu-sch">Kyung Hee University · Seoul, Korea</div></div>
+    </div>
+    <div class="sk-cols fade-up">
+      <div>
+        <div class="sk-gt">Quantitative Methods</div>
+        <div class="sk-row"><div class="sk-lbl">Python / ML</div><div class="sk-track"><div class="sk-fill sk-navy" style="width:96%"></div></div><div class="sk-pct">96%</div></div>
+        <div class="sk-row"><div class="sk-lbl">R / EViews</div><div class="sk-track"><div class="sk-fill sk-navy" style="width:92%"></div></div><div class="sk-pct">92%</div></div>
+        <div class="sk-row"><div class="sk-lbl">MATLAB</div><div class="sk-track"><div class="sk-fill sk-navy" style="width:88%"></div></div><div class="sk-pct">88%</div></div>
+        <div class="sk-row"><div class="sk-lbl">SPSS / SAS</div><div class="sk-track"><div class="sk-fill sk-navy" style="width:85%"></div></div><div class="sk-pct">85%</div></div>
+        <div class="sk-row"><div class="sk-lbl">C++ / Java</div><div class="sk-track"><div class="sk-fill sk-navy" style="width:78%"></div></div><div class="sk-pct">78%</div></div>
+      </div>
+      <div>
+        <div class="sk-gt">Risk &amp; Valuation</div>
+        <div class="sk-row"><div class="sk-lbl">VaR / CVaR</div><div class="sk-track"><div class="sk-fill sk-gold" style="width:97%"></div></div><div class="sk-pct">97%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Black-Litterman</div><div class="sk-track"><div class="sk-fill sk-gold" style="width:95%"></div></div><div class="sk-pct">95%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Derivatives</div><div class="sk-track"><div class="sk-fill sk-gold" style="width:93%"></div></div><div class="sk-pct">93%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Basel II/III</div><div class="sk-track"><div class="sk-fill sk-gold" style="width:91%"></div></div><div class="sk-pct">91%</div></div>
+        <div class="sk-row"><div class="sk-lbl">DCF/EVA/WACC</div><div class="sk-track"><div class="sk-fill sk-gold" style="width:94%"></div></div><div class="sk-pct">94%</div></div>
+      </div>
+      <div>
+        <div class="sk-gt">Systems &amp; AI</div>
+        <div class="sk-row"><div class="sk-lbl">Excel / VBA</div><div class="sk-track"><div class="sk-fill sk-teal" style="width:98%"></div></div><div class="sk-pct">98%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Deep Learning</div><div class="sk-track"><div class="sk-fill sk-teal" style="width:87%"></div></div><div class="sk-pct">87%</div></div>
+        <div class="sk-row"><div class="sk-lbl">HTML/CSS/JS</div><div class="sk-track"><div class="sk-fill sk-teal" style="width:82%"></div></div><div class="sk-pct">82%</div></div>
+        <div class="sk-row"><div class="sk-lbl">Flask/Django</div><div class="sk-track"><div class="sk-fill sk-teal" style="width:75%"></div></div><div class="sk-pct">75%</div></div>
+        <div class="sk-row"><div class="sk-lbl">LLM / ChatGPT</div><div class="sk-track"><div class="sk-fill sk-teal" style="width:90%"></div></div><div class="sk-pct">90%</div></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- GLOBAL FILE MANAGER -->
-<div class="fm-sec" id="files">
-  <div class="sin">
-    <div class="sec-head fade-up" style="border-bottom-color:rgba(255,255,255,0.2);">
-      <div class="sec-num-w">04</div>
-      <h2 class="sec-ttl-w">Research Resources &amp; Files</h2>
-    </div>
-    <div class="fm-grid fade-up">
-      <div class="fm-panel">
-        <div class="fm-panel-title">Upload &amp; Store Files <span class="file-count" id="fileCount"></span></div>
-        <div class="fm-panel-sub">Saved in your browser — available every visit</div>
-        <div class="drop-zone" id="dropZone">
-          <span class="drop-icon">📂</span>
-          <div class="drop-text">Tap or drag files here</div>
-          <div class="drop-sub">DOCX · XLSX · PDF · CSV · PNG · PPTX</div>
-        </div>
-        <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.pdf,.csv,.png,.jpg,.pptx,.py,.txt">
-        <button class="btn-gold" onclick="document.getElementById('fileInput').click()">📁 Select Files to Upload</button>
-        <div class="file-list" id="fileList">
-          <div class="empty-msg" id="emptyMsg">No files stored yet.</div>
-        </div>
-      </div>
-      <div class="fm-panel">
-        <div class="fm-panel-title">Research Downloads</div>
-        <div class="fm-panel-sub">Sample templates and research resources</div>
-        <div class="sample-file">
-          <div class="sf-icon">📘</div>
-          <div class="sf-name">Curriculum Vitae</div>
-          <div class="sf-desc">Lee Hong Jae · PhD · Full Resume</div>
-          <div class="sf-dl-row"><span class="sf-tag">TXT</span><button class="sf-btn" onclick="dlSample('cv')">⬇ Download</button></div>
-        </div>
-        <div class="sample-file">
-          <div class="sf-icon">📊</div>
-          <div class="sf-name">Black-Litterman SAA Model</div>
-          <div class="sf-desc">Excel workbook · Idzorek method</div>
-          <div class="sf-dl-row"><span class="sf-tag">CSV</span><button class="sf-btn" onclick="dlSample('bl')">⬇ Download</button></div>
-        </div>
-        <div class="sample-file">
-          <div class="sf-icon">📄</div>
-          <div class="sf-name">VaR Risk Framework</div>
-          <div class="sf-desc">Parametric · Historical · Monte Carlo</div>
-          <div class="sf-dl-row"><span class="sf-tag">TXT</span><button class="sf-btn" onclick="dlSample('var')">⬇ Download</button></div>
-        </div>
-        <div class="sample-file">
-          <div class="sf-icon">🐍</div>
-          <div class="sf-name">Python ML Finance Pipeline</div>
-          <div class="sf-desc">LSTM · XGBoost · Backtesting</div>
-          <div class="sf-dl-row"><span class="sf-tag">PY</span><button class="sf-btn" onclick="dlSample('py')">⬇ Download</button></div>
-        </div>
-        <div class="sample-file">
-          <div class="sf-icon">📑</div>
-          <div class="sf-name">Credit Risk Template</div>
-          <div class="sf-desc">CreditMetrics · Basel II · Stress Test</div>
-          <div class="sf-dl-row"><span class="sf-tag">CSV</span><button class="sf-btn" onclick="dlSample('cr')">⬇ Download</button></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-   
 <!-- CONTACT -->
 <div class="sec-silver" id="contact">
   <div class="sin">
@@ -1010,587 +484,349 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 
 </main>
 
-
-<!-- ═══ VIDEO SECTION ═══ -->
-<div style="background:var(--navy);border-top:3px solid var(--gold2);border-bottom:3px solid var(--gold2);">
-  <div style="max-width:1280px;margin:0 auto;padding:56px var(--px);">
-    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:36px;padding-bottom:16px;border-bottom:2px solid rgba(255,255,255,0.15);">
-      <div style="font-family:var(--mono);font-size:10px;color:var(--gold4);letter-spacing:0.2em;">07</div>
-      <h2 style="font-family:var(--serif);font-size:clamp(22px,5vw,30px);font-weight:400;color:white;">Research Presentation</h2>
-    </div>
-    <div style="position:relative;width:100%;max-width:900px;margin:0 auto;border:2px solid rgba(255,255,255,0.15);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-      <video
-        controls
-        autoplay
-        muted
-        loop
-        playsinline
-        style="width:100%;display:block;background:#000;"
-      >
-        <source src="https://raw.githubusercontent.com/masterlhj/masterlhj.github.io/main/gemini_generated.mp4" type="video/mp4">
-        브라우저가 동영상을 지원하지 않습니다.
-      </video>
-    </div>
-    <p style="font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.45);text-align:center;margin-top:16px;letter-spacing:0.05em;">
-      AIQuant Financial Engineering Research · Quantitative Finance &amp; AI Analytics
-    </p>
-  </div>
-</div>
-
-
-<!-- ═══ FILE SHARE SECTION ═══ -->
-<div class="share-sec" id="fileshare">
-  <div class="share-in">
-    <div class="sec-head fade-up" style="border-bottom-color:rgba(255,255,255,0.2);">
-      <div class="sec-num-w">08</div>
-      <h2 class="sec-ttl-w">Research File Library</h2>
-    </div>
-    <div class="share-grid fade-up">
-
-      <!-- UPLOAD -->
-      <div class="up-panel">
-        <div class="up-title">📤 파일 업로드</div>
-        <div class="up-sub">연구자료, 논문, 데이터파일을 업로드하세요<br>누구나 다운로드 가능 · 삭제는 관리자만</div>
-        <div class="up-drop" id="upDrop">
-          <span class="up-drop-icon">📂</span>
-          <div class="up-drop-text">파일을 여기에 드래그하거나 탭하세요</div>
-          <div class="up-drop-sub">DOCX · XLSX · PDF · CSV · PNG · PPTX · PY</div>
-        </div>
-        <input type="file" id="upInput" multiple style="display:none" accept=".docx,.xlsx,.pdf,.csv,.png,.jpg,.pptx,.py,.txt,.zip">
-        <button class="up-btn" onclick="document.getElementById('upInput').click()">📁 파일 선택하여 업로드</button>
-        <div class="up-progress" id="upProgress"><div class="up-progress-bar" id="upBar"></div></div>
-        <div class="up-msg" id="upMsg"></div>
-      </div>
-
-      <!-- FILE LIST -->
-      <div class="fl-panel">
-        <div class="fl-title">
-          📚 업로드된 파일
-          <span class="fl-count" id="flCount">로딩중...</span>
-        </div>
-        <div class="fl-sub">모든 방문자가 다운로드 가능합니다</div>
-        <div class="fl-list" id="flList">
-          <div class="fl-loading">⏳ 파일 목록 로딩중...</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ADMIN PASSWORD MODAL -->
-<div class="adm-modal" id="admModal">
-  <div class="adm-box">
-    <div class="adm-title">🔐 관리자 인증</div>
-    <div class="adm-sub">파일을 삭제하려면 관리자 비밀번호를 입력하세요</div>
-    <input type="password" class="adm-inp" id="admPw" placeholder="비밀번호 입력..."
-      onkeydown="if(event.key==='Enter')admCheck()">
-    <div class="adm-btns">
-      <button class="adm-ok" onclick="admCheck()">✓ 확인</button>
-      <button class="adm-cancel" onclick="admClose()">✕ 취소</button>
-    </div>
-    <div class="adm-err" id="admErr">❌ 비밀번호가 틀렸습니다. 다시 시도하세요.</div>
-  </div>
-</div>
-
 <footer>
   <div class="f-l">AIQuant Financial Engineering Research · Lee Hong Jae, PhD</div>
   <div class="f-r">© 2026 · Seoul, Korea</div>
 </footer>
 
-<script>
-/* TOP BAR */
-const mkts=[
-  {sym:'KOSPI', val:'--', chg:'--', up:true,  id:'tb-kospi'},
-  {sym:'S&P',   val:'--', chg:'--', up:true,  id:'tb-sp'},
-  {sym:'QQQ',   val:'--', chg:'--', up:false, id:'tb-qqq'},
-  {sym:'KRW',   val:'--', chg:'--', up:false, id:'tb-krw'},
-  {sym:'SPY',   val:'--', chg:'--', up:true,  id:'tb-spy'},
-];
-document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${m.id}"><span class="sym">${m.sym}</span><span class="val">${m.val}</span><span class="${m.up?'t-up':'t-dn'}">${m.chg}</span></div>`).join('');
-
-/* ═══════════════════════════════════════
-   REAL MARKET DATA
-   Source: Google Finance via Apps Script
-   URL: https://script.google.com/macros/s/AKfycbwdyBRu2G3HcumuXsc3eHsjOGJ4QCjcbfB1sph4ZEMgfr6if8I83z2jNZykw9kojVhy/exec
-═══════════════════════════════════════ */
-
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwdyBRu2G3HcumuXsc3eHsjOGJ4QCjcbfB1sph4ZEMgfr6if8I83z2jNZykw9kojVhy/exec';
-
-const C_COLORS = { c0:'#60a5fa', c1:'#4ade80', c2:'#f87171', c3:'#fbbf24' };
-const C_INST   = {};
-
-/* ── Build / update chart ── */
-function buildChart(id, pts, color) {
-  const cv = document.getElementById(id);
-  if (!cv || !pts || pts.length < 2) return;
-  if (C_INST[id]) {
-    C_INST[id].data.labels   = pts.map((_,i)=>i);
-    C_INST[id].data.datasets[0].data = pts;
-    C_INST[id].update('none');
-    return;
-  }
-  const ctx = cv.getContext('2d');
-  const g   = ctx.createLinearGradient(0,0,0,60);
-  g.addColorStop(0, color+'44');
-  g.addColorStop(1, color+'00');
-  C_INST[id] = new Chart(ctx, {
-    type:'line',
-    data:{ labels:pts.map((_,i)=>i), datasets:[{
-      data:pts, borderColor:color, borderWidth:2,
-      backgroundColor:g, fill:true, tension:0.4, pointRadius:0
-    }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-      scales:{ x:{display:false}, y:{display:false} },
-      animation:{duration:700}
-    }
-  });
-}
-
-/* ── Simulated fallback ── */
-function simChart(id, base, amp) {
-  let v=base, pts=[];
-  for(let i=0;i<30;i++){
-    v += (Math.random()-0.48)*amp;
-    v  = Math.max(base*0.97, Math.min(base*1.03, v));
-    pts.push(+v.toFixed(2));
-  }
-  buildChart(id, pts, C_COLORS[id]);
-}
-
-/* ── Generate mock history from price ── */
-function mockHistory(price, days=30, volatility=0.01) {
-  let v = price * (1 - volatility * days/2);
-  const pts = [];
-  for(let i=0;i<days;i++) {
-    v += (Math.random()-0.47) * price * volatility;
-    v  = Math.max(price*0.92, Math.min(price*1.08, v));
-    pts.push(+v.toFixed(2));
-  }
-  pts.push(price); // last point = current price
-  return pts;
-}
-
-/* ── Update chart box value/change ── */
-function setBox(id, price, prev) {
-  const valEl = document.getElementById('val-' + id);
-  const chgEl = document.getElementById('chg-' + id);
-  if (!valEl || !chgEl) return;
-  // If market closed (null price), show prev close with "휴장" label
-  if (!price && prev) {
-    if (id==='c3') valEl.textContent = Number(prev).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
-    else if (prev>1000) valEl.textContent = Number(prev).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    else valEl.textContent = Number(prev).toFixed(2);
-    chgEl.textContent = '휴장 (전일종가)';
-    chgEl.className = 'chart-box-chg';
-    chgEl.style.color = 'rgba(255,255,255,0.4)';
-    return;
-  }
-  if (!price || !prev || prev===0) return;
-
-  const pct = ((price - prev) / prev * 100);
-  const up  = pct >= 0;
-
-  if (id === 'c3') {
-    valEl.textContent = Number(price).toLocaleString('ko-KR', {minimumFractionDigits:1, maximumFractionDigits:1});
-  } else if (price > 1000) {
-    valEl.textContent = Number(price).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  } else {
-    valEl.textContent = Number(price).toFixed(2);
-  }
-
-  chgEl.textContent = `${up?'▲':'▼'} ${up?'+':''}${pct.toFixed(2)}%`;
-  chgEl.className   = 'chart-box-chg ' + (up ? 't-up' : 't-dn');
-}
-
-/* ── Update rate card ── */
-function setRate(id, price, prev, prefix, decimals) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  // If market closed, show prev close
-  if (!price && prev) {
-    const v = el.querySelector('.rate-val');
-    const c = el.querySelector('.rate-chg');
-    if (v) v.textContent = prefix + Number(prev).toFixed(decimals);
-    if (c) { c.textContent = '휴장'; c.className = 'rate-chg'; c.style.color='rgba(255,255,255,0.4)'; }
-    return;
-  }
-  if (!price) return;
-  const pct = prev ? ((price-prev)/prev*100).toFixed(2) : '0.00';
-  const up  = parseFloat(pct) >= 0;
-  const v   = el.querySelector('.rate-val');
-  const c   = el.querySelector('.rate-chg');
-  if (v) v.textContent = prefix + Number(price).toFixed(decimals);
-  if (c) {
-    c.textContent = `${up?'▲':'▼'}${up?'+':''}${pct}%`;
-    c.className   = 'rate-chg ' + (up?'t-up':'t-dn');
-  }
-}
-
-/* ── Assign IDs to rate cards ── */
-function assignRateIds() {
-  const cards = document.querySelectorAll('.rate-card');
-  ['r-eurusd','r-usdjpy','r-spy','r-qqq','r-ktb','r-bok']
-    .forEach((id,i) => { if(cards[i]) cards[i].id = id; });
-}
-
-/* ── Update top bar ── */
-function updateTopBar(data) {
-  const map = [
-    { key:'KOSPI',  tbId:'tb-kospi', fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
-    { key:'SP500',  tbId:'tb-sp',    fmt: p => Number(p).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) },
-    { key:'QQQ',    tbId:'tb-qqq',   fmt: p => Number(p).toFixed(2) },
-    { key:'USDKRW', tbId:'tb-krw',   fmt: p => Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0}) },
-  ];
-  map.forEach(m => {
-    const d = data[m.key];
-    if (!d) return;
-    const displayPrice = d.price || d.prev;
-    const displayPrev  = d.prev  || d.price;
-    if (!displayPrice) return;
-    const pct = d.price && d.prev ? ((d.price - d.prev) / d.prev * 100).toFixed(2) : '0.00';
-    const up  = parseFloat(pct) >= 0;
-    // Find tb-item by id
-    const items = document.querySelectorAll('.tb-item');
-    items.forEach(item => {
-      if (item.id === m.tbId) {
-        const v = item.querySelector('.val');
-        const c = item.querySelector('span:last-child');
-        if (v) v.textContent = m.fmt(displayPrice);
-        if (c) {
-          if (!d.price) { c.textContent = '휴장'; c.className = ''; c.style.color='rgba(255,255,255,0.4)'; }
-          else { c.textContent = `${up?'+':''}${pct}%`; c.className = up?'t-up':'t-dn'; }
-        }
-      }
-    });
-  });
-}
-
-/* ════════════════════════════════════
-   MAIN: Fetch from Google Apps Script
-════════════════════════════════════ */
-async function loadMarket() {
-  try {
-    // Show loading indicator on chart boxes
-    document.querySelectorAll('.chart-box-val').forEach(el => {
-      if (!el.dataset.loaded) el.style.opacity = '0.5';
-    });
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 25000);
-    const res  = await fetch(GAS_URL, { signal: controller.signal });
-    clearTimeout(timer);
-    const data = await res.json();
-
-    if (!data.ok && !data.KOSPI) {
-      console.error('GAS error:', data.error);
-      return;
-    }
-
-    // ── Main 4 charts ──
-    const chartMap = {
-      c0: { key:'KOSPI',  vol:0.008 },
-      c1: { key:'SP500',  vol:0.006 },
-      c2: { key:'NASDAQ', vol:0.007 },
-      c3: { key:'USDKRW', vol:0.003 },
-    };
-
-    for (const [id, cfg] of Object.entries(chartMap)) {
-      const d = data[cfg.key];
-      if (!d) continue;
-
-      // Use price if available, otherwise use prev (휴장/weekend)
-      const displayPrice = d.price || d.prev;
-      const displayPrev  = d.prev  || d.price;
-      if (!displayPrice) continue;
-
-      setBox(id, d.price, d.prev);
-
-      // Build history chart using available price
-      const hist = mockHistory(displayPrice, 30, cfg.vol);
-      buildChart(id, hist, C_COLORS[id]);
-
-      // Restore opacity
-      const cv  = document.getElementById(id);
-      const box = cv && cv.closest('.chart-box');
-      if (box) {
-        const ve = box.querySelector('.chart-box-val');
-        if (ve) ve.style.opacity = '1';
-      }
-    }
-
-    // ── Rate cards ──
-    assignRateIds();
-    if (data.EURUSD) setRate('r-eurusd', data.EURUSD.price, data.EURUSD.prev, '', 4);
-    if (data.USDJPY) setRate('r-usdjpy', data.USDJPY.price, data.USDJPY.prev, '', 2);
-    if (data.SP500)  setRate('r-spy',    data.SP500.price,  data.SP500.prev,  '', 2);
-    if (data.NASDAQ) setRate('r-qqq',    data.NASDAQ.price, data.NASDAQ.prev, '', 2);
-    if (data.SPY)    setRate('r-spy2',   data.SPY.price,    data.SPY.prev,    '$', 2);
-    if (data.QQQ)    setRate('r-qqq2',   data.QQQ.price,    data.QQQ.prev,    '$', 2);
-
-    // ── Top bar ──
-    updateTopBar(data);
-
-    console.log('✅ Market data loaded:', new Date().toLocaleTimeString());
-    const statusEl = document.getElementById('mkt-status');
-    if (statusEl) statusEl.textContent = 'Google Finance Live · ' + new Date().toLocaleTimeString('ko-KR');
-
-  } catch(e) {
-    console.warn('Market data fetch failed:', e.message);
-  }
-}
-
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', () => {
-  assignRateIds();
-
-  // Instant fallback charts (correct approximate values)
-  simChart('c0', 6191,  80);   // KOSPI
-  simChart('c1', 7126, 100);   // S&P500
-  simChart('c2', 24468,300);   // NASDAQ
-  simChart('c3', 1342,   5);   // USD/KRW
-
-  // Load real data after short delay
-  setTimeout(loadMarket, 800);
-
-  // Refresh every 3 minutes
-  setInterval(loadMarket, 180000);
-});
-
-
-/* ═══════════════════════════════════════
-   FILE SHARE SYSTEM
-   - Owner: upload + delete (password protected)
-   - Visitors: download only
-   - Storage: IndexedDB (owner's browser = source of truth)
-   - Share: files stored in owner's browser only
-   NOTE: For true multi-user sharing, use a backend.
-         This version uses localStorage as shared simulation.
-═══════════════════════════════════════ */
-
-/* ── ADMIN CONFIG (change password here) ── */
-const ADMIN_PW = 'aiquant2026'; // 비밀번호 변경 가능
-let pendingDeleteId = null;
-let pendingDeleteSection = null;
-let pendingDeleteListId = null;
-
-/* ── ADMIN MODAL ── */
-function askAdmin(id, section, listId) {
-  pendingDeleteId = id;
-  pendingDeleteSection = section;
-  pendingDeleteListId = listId;
-  document.getElementById('adminModal').classList.add('show');
-  document.getElementById('adminPwInput').value = '';
-  document.getElementById('adminErr').style.display = 'none';
-  setTimeout(()=>document.getElementById('adminPwInput').focus(), 100);
-}
-function closeAdminModal() {
-  document.getElementById('adminModal').classList.remove('show');
-  pendingDeleteId = null;
-}
-function checkAdmin() {
-  const pw = document.getElementById('adminPwInput').value;
-  if (pw === ADMIN_PW) {
-    closeAdminModal();
-    if (pendingDeleteSection === null) {
-      delConfirmed(pendingDeleteId, true);
-    } else {
-      delConfirmed(pendingDeleteId, false);
-    }
-  } else {
-    document.getElementById('adminErr').style.display = 'block';
-    document.getElementById('adminPwInput').value = '';
-    document.getElementById('adminPwInput').focus();
-  }
-}
-
-/* ── INDEXEDDB ── */
-const DB='AIQuantFiles'; let db=null;
-function openDB(){
-  return new Promise((res,rej)=>{
-    const r=indexedDB.open(DB,1);
-    r.onupgradeneeded=e=>e.target.result.createObjectStore('files',{keyPath:'id',autoIncrement:true});
-    r.onsuccess=e=>{db=e.target.result;res();};
-    r.onerror=rej;
-  });
-}
-function dbAdd(rec){return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').add(rec).onsuccess=e=>res(e.target.result);t.onerror=rej;});}
-function dbAll(){return new Promise((res,rej)=>{const t=db.transaction('files','readonly');t.objectStore('files').getAll().onsuccess=e=>res(e.target.result);t.onerror=rej;});}
-function dbDel(id){return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').delete(id).onsuccess=res;t.onerror=rej;});}
-
-function icon(n){const e=(n.split('.').pop()||'').toLowerCase();if(['xlsx','xls','csv'].includes(e))return'📊';if(['docx','doc'].includes(e))return'📄';if(e==='pdf')return'📕';if(['png','jpg'].includes(e))return'🖼️';if(e==='pptx')return'📑';if(e==='py')return'🐍';return'📁';}
-function sz(b){return b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?(b/1024).toFixed(0)+' KB':b+' B';}
-function dt(ts){const d=new Date(ts);return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
-
-/* ── RENDER GLOBAL FILE LIST ── */
-async function renderGlobal(){
-  const list=document.getElementById('fileList');
-  const em=document.getElementById('emptyMsg');
-  if(!list)return;
-  const all=await dbAll();
-  const items=all.filter(f=>!f.section);
-  if(em) em.style.display=items.length?'none':'block';
-  list.querySelectorAll('.file-item').forEach(el=>el.remove());
-
-  // Update count
-  const countEl = document.getElementById('fileCount');
-  if(countEl) countEl.textContent = items.length + '개 파일';
-
-  items.forEach(f=>{
-    const d=document.createElement('div');
-    d.className='file-item';
-    d.innerHTML=`
-      <div class="file-icon">${icon(f.name)}</div>
-      <div class="file-name">${f.name}</div>
-      <div class="file-meta">${sz(f.size)} · ${dt(f.ts)}</div>
-      <div class="file-btns">
-        <button class="btn-dl" onclick="dlStored(${f.id})">⬇ Download</button>
-        <button class="btn-del" onclick="askAdmin(${f.id},null,null)">🔐 Delete</button>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-/* ── RENDER SECTION FILE LIST ── */
-async function renderSection(sec,listId){
-  const list=document.getElementById(listId);
-  if(!list)return;
-  const all=await dbAll();
-  const items=all.filter(f=>f.section===sec);
-  list.innerHTML='';
-  if(!items.length){list.innerHTML='<div class="sec-empty">업로드된 파일이 없습니다.</div>';return;}
-  items.forEach(f=>{
-    const d=document.createElement('div');
-    d.className='sec-file-item';
-    d.innerHTML=`
-      <div class="sfi-icon">${icon(f.name)}</div>
-      <div class="sfi-name">${f.name}</div>
-      <div class="sfi-meta">${sz(f.size)} · ${dt(f.ts)}</div>
-      <div class="sfi-btns">
-        <button class="btn-sdl" onclick="dlStored(${f.id})">⬇ Download</button>
-        <button class="btn-sdel" onclick="askAdmin(${f.id},'${sec}','${listId}')">🔐</button>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-async function renderAll(){
-  await renderGlobal();
-  await renderSection('exp','fl-exp');
-  await renderSection('car','fl-car');
-  await renderSection('pub','fl-pub');
-  await renderSection('edu','fl-edu');
-}
-
-/* ── STORE FILE ── */
-async function storeFile(f,sec){
-  const buf=await f.arrayBuffer();
-  await dbAdd({name:f.name,size:f.size,type:f.type,data:buf,ts:Date.now(),section:sec||null});
-}
-
-/* ── DOWNLOAD ── */
-async function dlStored(id){
-  const all=await dbAll();
-  const f=all.find(x=>x.id===id);
-  if(!f)return;
-  const blob=new Blob([f.data],{type:f.type||'application/octet-stream'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=f.name;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),2000);
-}
-
-/* ── DELETE (after admin auth) ── */
-async function delConfirmed(id, isGlobal){
-  await dbDel(id);
-  if(isGlobal) await renderGlobal();
-  else await renderAll();
-}
-
-/* ── GLOBAL UPLOAD ── */
-const dz=document.getElementById('dropZone');
-const fi=document.getElementById('fileInput');
-if(dz){
-  dz.addEventListener('click',()=>fi.click());
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
-  dz.addEventListener('drop',async e=>{
-    e.preventDefault();dz.classList.remove('drag-over');
-    for(const f of Array.from(e.dataTransfer.files)) await storeFile(f,null);
-    await renderGlobal();
-  });
-}
-if(fi){
-  fi.addEventListener('change',async e=>{
-    for(const f of Array.from(e.target.files)) await storeFile(f,null);
-    await renderGlobal();
-    e.target.value='';
-  });
-}
-
-/* ── SECTION UPLOADS ── */
-function setupSec(inputId,sec,listId){
-  const inp=document.getElementById(inputId);
-  if(!inp)return;
-  inp.addEventListener('change',async e=>{
-    for(const f of Array.from(e.target.files)) await storeFile(f,sec);
-    await renderSection(sec,listId);
-    e.target.value='';
-  });
-}
-
-/* ── SAMPLE DOWNLOADS ── */
-function dlSample(t){
-  const s={
-    cv:{n:'LeeHongJae_CV.txt',c:'AIQuant Financial Engineering Research\nLee Hong Jae | PhD | hongjaelee77@gmail.com'},
-    bl:{n:'BlackLitterman_SAA.csv',c:'Asset,Weight,ExpReturn,Sigma\nKOSPI200,0.25,0.085,0.18\nKTB10Y,0.30,0.035,0.04'},
-    var:{n:'VaR_Framework.txt',c:'VaR Risk Framework\n1. Parametric VaR\n2. Historical Simulation\n3. Monte Carlo'},
-    py:{n:'ML_Finance.py',c:'# AIQuant ML Pipeline\nimport numpy as np\nprint("AIQuant")'},
-    cr:{n:'CreditRisk.csv',c:'ObligorID,PD,LGD,EAD\nCORP001,0.005,0.45,1000000'},
-  };
-  const x=s[t];if(!x)return;
-  const blob=new Blob([x.c],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=x.n;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),2000);
-}
-
-/* ── INIT ── */
-openDB().then(()=>{
-  renderAll();
-  setupSec('fi-exp','exp','fl-exp');
-  setupSec('fi-car','car','fl-car');
-  setupSec('fi-pub','pub','fl-pub');
-  setupSec('fi-edu','edu','fl-edu');
-});
-
-
-/* SCROLL ANIMATE */
-const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
-document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
-
-/* SKILL BARS */
-const skObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.sk-fill').forEach(b=>{const w=b.style.width;b.style.width='0';requestAnimationFrame(()=>{b.style.width=w;});});}});},{threshold:0.15});
-document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
-</script>
-
-<!-- ADMIN PASSWORD MODAL -->
-<div class="admin-modal" id="adminModal">
-  <div class="admin-box">
-    <div class="admin-title">🔐 관리자 인증</div>
-    <div class="admin-sub">삭제하려면 관리자 비밀번호를 입력하세요</div>
-    <input type="password" class="admin-input" id="adminPwInput" placeholder="비밀번호 입력..." onkeydown="if(event.key==='Enter')checkAdmin()">
-    <div class="admin-btns">
-      <button class="admin-ok" onclick="checkAdmin()">확인</button>
-      <button class="admin-cancel" onclick="closeAdminModal()">취소</button>
+<!-- ═══ PASSWORD MODAL ═══ -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <div class="pw-icon" id="pwIcon">🔐</div>
+    <div class="pw-title" id="pwTitle">관리자 인증</div>
+    <div class="pw-sub" id="pwSub">관리자 비밀번호를 입력하세요</div>
+    <input type="password" class="pw-input" id="pwInput"
+      placeholder="비밀번호 입력..."
+      onkeydown="if(event.key==='Enter')pwConfirm()">
+    <div class="pw-btns">
+      <button class="pw-ok" onclick="pwConfirm()">✓ 확인</button>
+      <button class="pw-cancel" onclick="pwClose()">✕ 취소</button>
     </div>
-    <div class="admin-err" id="adminErr">❌ 비밀번호가 틀렸습니다</div>
+    <div class="pw-err" id="pwErr">❌ 비밀번호가 틀렸습니다. 다시 입력하세요.</div>
   </div>
 </div>
 
+<script>
+/* ═══════════════════════════════════════════
+   MARKET DATA — Google Apps Script
+═══════════════════════════════════════════ */
+const MKT_URL = 'https://script.google.com/macros/s/AKfycbwdyBRu2G3HcumuXsc3eHsjOGJ4QCjcbfB1sph4ZEMgfr6if8I83z2jNZykw9kojVhy/exec';
+const C_COLORS = {c0:'#60a5fa',c1:'#4ade80',c2:'#f87171',c3:'#fbbf24'};
+const C_INST = {};
+
+/* TOP BAR */
+const mkts=[
+  {sym:'KOSPI',val:'--',chg:'--',up:true,id:'tb-k'},
+  {sym:'S&P',val:'--',chg:'--',up:true,id:'tb-s'},
+  {sym:'QQQ',val:'--',chg:'--',up:false,id:'tb-q'},
+  {sym:'KRW',val:'--',chg:'--',up:false,id:'tb-r'},
+  {sym:'SPY',val:'--',chg:'--',up:true,id:'tb-p'},
+];
+document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${m.id}"><span class="sym">${m.sym}</span><span class="val">${m.val}</span><span class="${m.up?'t-up':'t-dn'}">${m.chg}</span></div>`).join('');
+
+function buildChart(id,pts,color){
+  const cv=document.getElementById(id);if(!cv||!pts||pts.length<2)return;
+  if(C_INST[id]){C_INST[id].data.labels=pts.map((_,i)=>i);C_INST[id].data.datasets[0].data=pts;C_INST[id].update('none');return;}
+  const ctx=cv.getContext('2d');const g=ctx.createLinearGradient(0,0,0,56);g.addColorStop(0,color+'44');g.addColorStop(1,color+'00');
+  C_INST[id]=new Chart(ctx,{type:'line',data:{labels:pts.map((_,i)=>i),datasets:[{data:pts,borderColor:color,borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:{duration:600}}});
+}
+function simChart(id,base,amp){
+  let v=base,pts=[];
+  for(let i=0;i<30;i++){v+=(Math.random()-0.48)*amp;v=Math.max(base*0.97,Math.min(base*1.03,v));pts.push(+v.toFixed(2));}
+  buildChart(id,pts,C_COLORS[id]);
+}
+function mockHistory(price,days=30,vol=0.01){
+  let v=price*(1-vol*days/2),pts=[];
+  for(let i=0;i<days;i++){v+=(Math.random()-0.47)*price*vol;v=Math.max(price*0.92,Math.min(price*1.08,v));pts.push(+v.toFixed(2));}
+  pts.push(price);return pts;
+}
+function setBox(id,price,prev){
+  const ve=document.getElementById('val-'+id);const ce=document.getElementById('chg-'+id);
+  if(!ve||!ce)return;
+  const displayPrice=price||prev;const displayPrev=prev||price;
+  if(!displayPrice)return;
+  if(id==='c3') ve.textContent=Number(displayPrice).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  else if(displayPrice>1000) ve.textContent=Number(displayPrice).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  else ve.textContent=Number(displayPrice).toFixed(2);
+  if(!price&&prev){ce.textContent='휴장(전일종가)';ce.className='chart-box-chg';ce.style.color='rgba(255,255,255,0.4)';return;}
+  if(price&&prev&&prev!==0){const pct=((price-prev)/prev*100);const up=pct>=0;ce.textContent=`${up?'▲':'▼'} ${up?'+':''}${pct.toFixed(2)}%`;ce.className='chart-box-chg '+(up?'t-up':'t-dn');ce.style.color='';}
+}
+function setRate(id,price,prev,prefix,dec){
+  const el=document.getElementById(id);if(!el)return;
+  const dp=price||prev;if(!dp)return;
+  const v=el.querySelector('.rate-val');const c=el.querySelector('.rate-chg');
+  if(v) v.textContent=prefix+Number(dp).toFixed(dec);
+  if(c){if(!price&&prev){c.textContent='휴장';c.className='rate-chg';c.style.color='rgba(255,255,255,0.4)';}
+  else if(price&&prev&&prev!==0){const pct=((price-prev)/prev*100);const up=pct>=0;c.textContent=`${up?'▲':'▼'}${up?'+':''}${pct.toFixed(2)}%`;c.className='rate-chg '+(up?'t-up':'t-dn');c.style.color='';}}
+}
+async function loadMarket(){
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),25000);
+    const res=await fetch(MKT_URL,{signal:controller.signal});
+    clearTimeout(timer);
+    const data=await res.json();
+    if(!data.ok&&!data.KOSPI)return;
+    const chartMap={c0:{key:'KOSPI',vol:0.008},c1:{key:'SP500',vol:0.006},c2:{key:'NASDAQ',vol:0.007},c3:{key:'USDKRW',vol:0.003}};
+    for(const [id,cfg] of Object.entries(chartMap)){
+      const d=data[cfg.key];if(!d)continue;
+      const dp=d.price||d.prev;if(!dp)continue;
+      setBox(id,d.price,d.prev);
+      buildChart(id,mockHistory(dp,30,cfg.vol),C_COLORS[id]);
+    }
+    setRate('r-eurusd',data.EURUSD?.price,data.EURUSD?.prev,'',4);
+    setRate('r-usdjpy',data.USDJPY?.price,data.USDJPY?.prev,'',2);
+    setRate('r-sp500',data.SP500?.price,data.SP500?.prev,'',2);
+    setRate('r-nasdaq',data.NASDAQ?.price,data.NASDAQ?.prev,'',2);
+    // Update top bar
+    const tbMap=[{key:'KOSPI',id:'tb-k'},{key:'SP500',id:'tb-s'},{key:'NASDAQ',id:'tb-q'},{key:'USDKRW',id:'tb-r'}];
+    tbMap.forEach(m=>{
+      const d=data[m.key];if(!d)return;
+      const dp=d.price||d.prev;if(!dp)return;
+      const el=document.getElementById(m.id);if(!el)return;
+      const v=el.querySelector('.val');const c=el.querySelector('span:last-child');
+      if(v) v.textContent=dp>1000?Number(dp).toLocaleString('en-US',{maximumFractionDigits:0}):Number(dp).toFixed(2);
+      if(c){if(!d.price){c.textContent='휴장';c.className='';}
+      else if(d.prev){const pct=((d.price-d.prev)/d.prev*100);const up=pct>=0;c.textContent=`${up?'+':''}${pct.toFixed(2)}%`;c.className=up?'t-up':'t-dn';}}
+    });
+    const st=document.getElementById('mkt-status');
+    if(st){st.textContent='Google Finance Live · '+new Date().toLocaleTimeString('ko-KR');}
+  }catch(e){console.warn('Market data error:',e.message);}
+}
+
+/* ═══════════════════════════════════════════
+   FILE LIBRARY SYSTEM
+   Server: Google Apps Script + Google Drive
+   - 업로드: 비밀번호 필요 (관리자만)
+   - 다운로드: 누구나 무료
+   - 삭제: 비밀번호 필요 (관리자만)
+═══════════════════════════════════════════ */
+const FS_URL = 'https://script.google.com/macros/s/AKfycbzKh5gkHW9saKQRlVHJ1MU9aksp9URwcQa8zzEP66U7PZdHKWEyZsXD_03aQXNPdVU9Qg/exec';
+const FS_PW  = 'aiquant2026';  // ← 비밀번호 (여기서 변경 가능)
+
+let pwAction  = null;  // 'upload' | 'delete'
+let pwDelId   = null;
+let pwDelName = null;
+
+/* ── 파일 아이콘 ── */
+function fsIcon(n){
+  const e=(n.split('.').pop()||'').toLowerCase();
+  if(['xlsx','xls','csv'].includes(e))return'📊';
+  if(['docx','doc'].includes(e))return'📄';
+  if(e==='pdf')return'📕';
+  if(['png','jpg','jpeg'].includes(e))return'🖼️';
+  if(e==='pptx')return'📑';
+  if(e==='py')return'🐍';
+  if(e==='zip')return'🗜️';
+  return'📁';
+}
+function fsSz(b){return b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?(b/1024).toFixed(0)+' KB':b+' B';}
+function fsDt(ts){const d=new Date(ts);return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');}
+
+/* ── 파일 목록 로드 (누구나) ── */
+async function libLoad(){
+  const list=document.getElementById('libList');
+  const cnt=document.getElementById('libCount');
+  try{
+    const r=await fetch(FS_URL+'?action=list');
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error||'서버 오류');
+    if(cnt)cnt.textContent=d.files.length+'개 파일';
+    if(!list)return;
+    list.innerHTML='';
+    if(d.files.length===0){list.innerHTML='<div class="lib-empty">업로드된 파일이 없습니다.<br><small>관리자가 파일을 업로드하면 여기에 표시됩니다.</small></div>';return;}
+    d.files.forEach(f=>{
+      const div=document.createElement('div');div.className='lib-file';div.id='lf-'+f.id;
+      div.innerHTML=`
+        <div class="lib-file-icon">${fsIcon(f.name)}</div>
+        <div class="lib-file-name">${f.name}</div>
+        <div class="lib-file-meta">${fsSz(f.size)} · ${fsDt(f.date)}</div>
+        <div class="lib-file-btns">
+          <button class="lib-dl" onclick="libDl('${f.id}','${f.name}')">⬇ Download</button>
+          <button class="lib-del" onclick="pwAsk('delete','${f.id}','${f.name}')">🔐 Delete</button>
+        </div>`;
+      list.appendChild(div);
+    });
+  }catch(e){
+    if(list)list.innerHTML=`<div class="lib-empty">⚠️ 파일 목록 로드 실패<br><small>${e.message}</small></div>`;
+    if(cnt)cnt.textContent='오류';
+  }
+}
+
+/* ── 다운로드 (누구나, 비번 불필요) ── */
+function libDl(fid,fname){
+  const a=document.createElement('a');
+  a.href='https://drive.google.com/uc?export=download&id='+fid;
+  a.download=fname;a.target='_blank';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+/* ── 업로드 버튼 클릭 → 비번 먼저 ── */
+function libUploadClick(){
+  pwAsk('upload',null,null);
+}
+
+/* ── 실제 업로드 (비번 확인 후) ── */
+async function libDoUpload(files){
+  const prog=document.getElementById('libProg');
+  const bar=document.getElementById('libBar');
+  const msg=document.getElementById('libMsg');
+  if(!files||files.length===0)return;
+  prog.style.display='block';
+  let done=0;
+  for(const file of Array.from(files)){
+    msg.textContent=`업로드 중... ${file.name} (${done+1}/${files.length})`;
+    bar.style.width=(done/files.length*80)+'%';
+    try{
+      const b64=await new Promise((res,rej)=>{
+        const reader=new FileReader();
+        reader.onload=e=>res(e.target.result.split(',')[1]);
+        reader.onerror=rej;
+        reader.readAsDataURL(file);
+      });
+      const r=await fetch(FS_URL,{
+        method:'POST',
+        body:JSON.stringify({name:file.name,mime:file.type||'application/octet-stream',data:b64}),
+        headers:{'Content-Type':'text/plain'}
+      });
+      const d=await r.json();
+      if(!d.ok)throw new Error(d.error);
+      done++;
+    }catch(e){
+      msg.textContent='❌ 업로드 실패: '+e.message;
+      setTimeout(()=>{prog.style.display='none';msg.textContent='';},3000);
+      return;
+    }
+  }
+  bar.style.width='100%';
+  msg.textContent=`✅ ${done}개 파일 업로드 완료!`;
+  setTimeout(()=>{prog.style.display='none';bar.style.width='0%';msg.textContent='';},2500);
+  await libLoad();
+}
+
+/* ── 삭제 (비번 확인 후) ── */
+async function libDelete(fid){
+  const item=document.getElementById('lf-'+fid);
+  if(item)item.style.opacity='0.4';
+  try{
+    const r=await fetch(`${FS_URL}?action=delete&fid=${fid}&pw=${encodeURIComponent(FS_PW)}`);
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error);
+    await libLoad();
+  }catch(e){
+    alert('삭제 실패: '+e.message);
+    if(item)item.style.opacity='1';
+  }
+}
+
+/* ═══════════════════════════════
+   비밀번호 팝업 (업로드/삭제 공통)
+═══════════════════════════════ */
+function pwAsk(action,delId,delName){
+  pwAction=action;pwDelId=delId;pwDelName=delName;
+  const icon=document.getElementById('pwIcon');
+  const title=document.getElementById('pwTitle');
+  const sub=document.getElementById('pwSub');
+  if(action==='upload'){
+    if(icon)icon.textContent='📤';
+    if(title)title.textContent='업로드 인증';
+    if(sub)sub.textContent='파일을 업로드하려면\n관리자 비밀번호를 입력하세요';
+  }else{
+    if(icon)icon.textContent='🗑️';
+    if(title)title.textContent='삭제 인증';
+    if(sub)sub.textContent=`"${delName||'이 파일'}"을 삭제하려면\n관리자 비밀번호를 입력하세요`;
+  }
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').style.display='none';
+  document.getElementById('pwOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('pwInput').focus(),150);
+}
+
+function pwClose(){
+  document.getElementById('pwOverlay').classList.remove('show');
+  pwAction=null;pwDelId=null;pwDelName=null;
+}
+
+async function pwConfirm(){
+  const pw=document.getElementById('pwInput').value;
+  if(pw!==FS_PW){
+    document.getElementById('pwErr').style.display='block';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+    // Shake animation
+    const box=document.querySelector('.pw-box');
+    box.style.transform='translateX(-8px)';
+    setTimeout(()=>{box.style.transform='translateX(8px)';},100);
+    setTimeout(()=>{box.style.transform='translateX(0)';},200);
+    return;
+  }
+  pwClose();
+  if(pwAction==='upload'){
+    document.getElementById('libInput').click();
+  }else if(pwAction==='delete'){
+    await libDelete(pwDelId);
+  }
+}
+
+/* ── 드래그&드롭 설정 ── */
+function libSetup(){
+  const drop=document.getElementById('libDrop');
+  const input=document.getElementById('libInput');
+  if(!drop||!input)return;
+  drop.addEventListener('click',()=>pwAsk('upload',null,null));
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{
+    e.preventDefault();drop.classList.remove('over');
+    // Store dragged files, then ask for password
+    const files=e.dataTransfer.files;
+    pwAsk('upload',null,null);
+    // After password confirmed, input.click() is called
+    // But for drag&drop we need to handle differently
+    const handler=()=>{
+      input.removeEventListener('change',handler);
+      libDoUpload(files);
+    };
+    // Override: directly upload after password
+    const origConfirm=window.pwConfirm;
+    window.pwConfirm=async()=>{
+      const pw=document.getElementById('pwInput').value;
+      if(pw!==FS_PW){
+        document.getElementById('pwErr').style.display='block';
+        document.getElementById('pwInput').value='';
+        document.getElementById('pwInput').focus();
+        return;
+      }
+      pwClose();
+      window.pwConfirm=origConfirm;
+      await libDoUpload(files);
+    };
+  });
+  input.addEventListener('change',e=>{
+    libDoUpload(e.target.files);
+    e.target.value='';
+  });
+}
+
+/* ── SCROLL ANIMATE ── */
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
+document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
+
+/* ── SKILL BARS ── */
+const skObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.sk-fill').forEach(b=>{const w=b.style.width;b.style.width='0';requestAnimationFrame(()=>{b.style.width=w;});});}});},{threshold:0.15});
+document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  // Market: show simulated immediately
+  simChart('c0',6191,80);simChart('c1',7126,100);simChart('c2',24468,300);simChart('c3',1342,5);
+  setTimeout(loadMarket,800);
+  setInterval(loadMarket,180000);
+  // File library
+  libSetup();
+  libLoad();
+  setInterval(libLoad,120000);
+});
+</script>
 </body>
 </html>
