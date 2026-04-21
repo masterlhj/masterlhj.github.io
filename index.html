@@ -596,19 +596,19 @@ async function loadMarket(){
 
 /* ═══════════════════════════════════════════
    FILE LIBRARY SYSTEM
-   Server: Google Apps Script + Google Drive
    - 업로드: 비밀번호 필요 (관리자만)
-   - 다운로드: 누구나 무료
+   - 다운로드: 누구나 무료 (비번 불필요)
    - 삭제: 비밀번호 필요 (관리자만)
 ═══════════════════════════════════════════ */
 const FS_URL = 'https://script.google.com/macros/s/AKfycbzKh5gkHW9saKQRlVHJ1MU9aksp9URwcQa8zzEP66U7PZdHKWEyZsXD_03aQXNPdVU9Qg/exec';
-const FS_PW  = 'aiquant2026';  // ← 비밀번호 (여기서 변경 가능)
+const FS_PW  = 'aiquant2026';
 
-let pwAction  = null;  // 'upload' | 'delete'
-let pwDelId   = null;
-let pwDelName = null;
+/* ── 상태 변수 ── */
+let _pwAction = null;
+let _pwDelId  = null;
+let _pwDelName = null;
 
-/* ── 파일 아이콘 ── */
+/* ── 아이콘 ── */
 function fsIcon(n){
   const e=(n.split('.').pop()||'').toLowerCase();
   if(['xlsx','xls','csv'].includes(e))return'📊';
@@ -623,21 +623,107 @@ function fsIcon(n){
 function fsSz(b){return b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?(b/1024).toFixed(0)+' KB':b+' B';}
 function fsDt(ts){const d=new Date(ts);return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');}
 
-/* ── 파일 목록 로드 (누구나) ── */
+/* ═══════════════════
+   비밀번호 팝업
+═══════════════════ */
+function pwAsk(action, delId, delName){
+  // 상태 저장
+  _pwAction  = action;
+  _pwDelId   = delId;
+  _pwDelName = delName;
+
+  // 팝업 내용 설정
+  const icon  = document.getElementById('pwIcon');
+  const title = document.getElementById('pwTitle');
+  const sub   = document.getElementById('pwSub');
+
+  if(action === 'upload'){
+    if(icon)  icon.textContent  = '📤';
+    if(title) title.textContent = '업로드 인증';
+    if(sub)   sub.textContent   = '파일을 업로드하려면 관리자 비밀번호를 입력하세요';
+  } else {
+    if(icon)  icon.textContent  = '🗑️';
+    if(title) title.textContent = '삭제 인증';
+    if(sub)   sub.textContent   = '"' + (delName||'이 파일') + '"을 삭제하려면 비밀번호를 입력하세요';
+  }
+
+  // 팝업 열기
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwErr').style.display = 'none';
+  document.getElementById('pwOverlay').classList.add('show');
+  setTimeout(()=> document.getElementById('pwInput').focus(), 150);
+}
+
+function pwClose(){
+  document.getElementById('pwOverlay').classList.remove('show');
+  _pwAction = null;
+  _pwDelId  = null;
+  _pwDelName = null;
+}
+
+async function pwConfirm(){
+  const pw = document.getElementById('pwInput').value.trim();
+
+  // 비번 틀림
+  if(pw !== FS_PW){
+    const errEl = document.getElementById('pwErr');
+    if(errEl) errEl.style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+    // 흔들림 효과
+    const box = document.querySelector('.pw-box');
+    if(box){
+      box.style.transition = 'transform 0.1s';
+      box.style.transform = 'translateX(-10px)';
+      setTimeout(()=>{ box.style.transform='translateX(10px)'; },100);
+      setTimeout(()=>{ box.style.transform='translateX(0)'; },200);
+    }
+    return;
+  }
+
+  // 비번 맞음 - 현재 액션 저장 후 팝업 닫기
+  const action = _pwAction;
+  const delId  = _pwDelId;
+
+  // 팝업 닫기 (상태 초기화)
+  document.getElementById('pwOverlay').classList.remove('show');
+  _pwAction = null;
+  _pwDelId  = null;
+  _pwDelName = null;
+
+  // 액션 실행
+  if(action === 'upload'){
+    document.getElementById('libInput').click();
+  } else if(action === 'delete' && delId){
+    await libDeleteExec(delId);
+  }
+}
+
+/* ═══════════════════
+   파일 목록 로드
+═══════════════════ */
 async function libLoad(){
-  const list=document.getElementById('libList');
-  const cnt=document.getElementById('libCount');
+  const list = document.getElementById('libList');
+  const cnt  = document.getElementById('libCount');
   try{
-    const r=await fetch(FS_URL+'?action=list');
-    const d=await r.json();
-    if(!d.ok)throw new Error(d.error||'서버 오류');
-    if(cnt)cnt.textContent=d.files.length+'개 파일';
-    if(!list)return;
-    list.innerHTML='';
-    if(d.files.length===0){list.innerHTML='<div class="lib-empty">업로드된 파일이 없습니다.<br><small>관리자가 파일을 업로드하면 여기에 표시됩니다.</small></div>';return;}
-    d.files.forEach(f=>{
-      const div=document.createElement('div');div.className='lib-file';div.id='lf-'+f.id;
-      div.innerHTML=`
+    const r = await fetch(FS_URL + '?action=list');
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error || '서버 오류');
+
+    if(cnt) cnt.textContent = d.files.length + '개 파일';
+    if(!list) return;
+    list.innerHTML = '';
+
+    if(d.files.length === 0){
+      list.innerHTML = '<div class="lib-empty">업로드된 파일이 없습니다.<br><small>관리자가 업로드하면 여기에 표시됩니다.</small></div>';
+      return;
+    }
+
+    d.files.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'lib-file';
+      div.id = 'lf-' + f.id;
+      div.innerHTML = `
         <div class="lib-file-icon">${fsIcon(f.name)}</div>
         <div class="lib-file-name">${f.name}</div>
         <div class="lib-file-meta">${fsSz(f.size)} · ${fsDt(f.date)}</div>
@@ -647,171 +733,146 @@ async function libLoad(){
         </div>`;
       list.appendChild(div);
     });
-  }catch(e){
-    if(list)list.innerHTML=`<div class="lib-empty">⚠️ 파일 목록 로드 실패<br><small>${e.message}</small></div>`;
-    if(cnt)cnt.textContent='오류';
+  } catch(e){
+    if(list) list.innerHTML = `<div class="lib-empty">⚠️ 로드 실패: ${e.message}</div>`;
+    if(cnt)  cnt.textContent = '오류';
   }
 }
 
-/* ── 다운로드 (누구나, 비번 불필요) ── */
-function libDl(fid,fname){
-  const a=document.createElement('a');
-  a.href='https://drive.google.com/uc?export=download&id='+fid;
-  a.download=fname;a.target='_blank';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+/* ═══════════════════
+   다운로드 (누구나)
+═══════════════════ */
+function libDl(fid, fname){
+  const a = document.createElement('a');
+  a.href = 'https://drive.google.com/uc?export=download&id=' + fid;
+  a.download = fname;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
-/* ── 업로드 버튼 클릭 → 비번 먼저 ── */
+/* ═══════════════════
+   업로드 (비번 후)
+═══════════════════ */
 function libUploadClick(){
-  pwAsk('upload',null,null);
+  pwAsk('upload', null, null);
 }
 
-/* ── 실제 업로드 (비번 확인 후) ── */
 async function libDoUpload(files){
-  const prog=document.getElementById('libProg');
-  const bar=document.getElementById('libBar');
-  const msg=document.getElementById('libMsg');
-  if(!files||files.length===0)return;
-  prog.style.display='block';
-  let done=0;
+  const prog = document.getElementById('libProg');
+  const bar  = document.getElementById('libBar');
+  const msg  = document.getElementById('libMsg');
+  if(!files || files.length === 0) return;
+
+  prog.style.display = 'block';
+  let done = 0;
+
   for(const file of Array.from(files)){
-    msg.textContent=`업로드 중... ${file.name} (${done+1}/${files.length})`;
-    bar.style.width=(done/files.length*80)+'%';
+    msg.textContent = `업로드 중... ${file.name} (${done+1}/${files.length})`;
+    bar.style.width = (done / files.length * 80) + '%';
     try{
-      const b64=await new Promise((res,rej)=>{
-        const reader=new FileReader();
-        reader.onload=e=>res(e.target.result.split(',')[1]);
-        reader.onerror=rej;
+      const b64 = await new Promise((res,rej)=>{
+        const reader = new FileReader();
+        reader.onload = e => res(e.target.result.split(',')[1]);
+        reader.onerror = rej;
         reader.readAsDataURL(file);
       });
-      const r=await fetch(FS_URL,{
-        method:'POST',
-        body:JSON.stringify({name:file.name,mime:file.type||'application/octet-stream',data:b64}),
-        headers:{'Content-Type':'text/plain'}
+      const r = await fetch(FS_URL, {
+        method: 'POST',
+        body: JSON.stringify({name:file.name, mime:file.type||'application/octet-stream', data:b64}),
+        headers: {'Content-Type':'text/plain'}
       });
-      const d=await r.json();
-      if(!d.ok)throw new Error(d.error);
+      const d = await r.json();
+      if(!d.ok) throw new Error(d.error);
       done++;
-    }catch(e){
-      msg.textContent='❌ 업로드 실패: '+e.message;
-      setTimeout(()=>{prog.style.display='none';msg.textContent='';},3000);
+    } catch(e){
+      msg.textContent = '❌ 업로드 실패: ' + e.message;
+      setTimeout(()=>{ prog.style.display='none'; msg.textContent=''; }, 3000);
       return;
     }
   }
-  bar.style.width='100%';
-  msg.textContent=`✅ ${done}개 파일 업로드 완료!`;
-  setTimeout(()=>{prog.style.display='none';bar.style.width='0%';msg.textContent='';},2500);
+
+  bar.style.width = '100%';
+  msg.textContent = `✅ ${done}개 파일 업로드 완료!`;
+  setTimeout(()=>{ prog.style.display='none'; bar.style.width='0%'; msg.textContent=''; }, 2500);
   await libLoad();
 }
 
-/* ── 삭제 (비번 확인 후) ── */
-async function libDelete(fid){
-  const item=document.getElementById('lf-'+fid);
-  if(item)item.style.opacity='0.4';
+/* ═══════════════════
+   삭제 (비번 후)
+═══════════════════ */
+async function libDeleteExec(fid){
+  const item = document.getElementById('lf-' + fid);
+  if(item) item.style.opacity = '0.4';
   try{
-    const r=await fetch(`${FS_URL}?action=delete&fid=${fid}&pw=${encodeURIComponent(FS_PW)}`);
-    const d=await r.json();
-    if(!d.ok)throw new Error(d.error);
+    const r = await fetch(`${FS_URL}?action=delete&fid=${fid}&pw=${encodeURIComponent(FS_PW)}`);
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error);
     await libLoad();
-  }catch(e){
-    alert('삭제 실패: '+e.message);
-    if(item)item.style.opacity='1';
+  } catch(e){
+    alert('삭제 실패: ' + e.message);
+    if(item) item.style.opacity = '1';
   }
 }
 
-/* ═══════════════════════════════
-   비밀번호 팝업 (업로드/삭제 공통)
-═══════════════════════════════ */
-function pwAsk(action,delId,delName){
-  pwAction=action;pwDelId=delId;pwDelName=delName;
-  const icon=document.getElementById('pwIcon');
-  const title=document.getElementById('pwTitle');
-  const sub=document.getElementById('pwSub');
-  if(action==='upload'){
-    if(icon)icon.textContent='📤';
-    if(title)title.textContent='업로드 인증';
-    if(sub)sub.textContent='파일을 업로드하려면\n관리자 비밀번호를 입력하세요';
-  }else{
-    if(icon)icon.textContent='🗑️';
-    if(title)title.textContent='삭제 인증';
-    if(sub)sub.textContent=`"${delName||'이 파일'}"을 삭제하려면\n관리자 비밀번호를 입력하세요`;
-  }
-  document.getElementById('pwInput').value='';
-  document.getElementById('pwErr').style.display='none';
-  document.getElementById('pwOverlay').classList.add('show');
-  setTimeout(()=>document.getElementById('pwInput').focus(),150);
-}
-
-function pwClose(){
-  document.getElementById('pwOverlay').classList.remove('show');
-  // ⚠️ action/delId 는 pwConfirm 에서 사용 후 초기화
-}
-
-async function pwConfirm(){
-  const pw=document.getElementById('pwInput').value;
-  if(pw!==FS_PW){
-    document.getElementById('pwErr').style.display='block';
-    document.getElementById('pwInput').value='';
-    document.getElementById('pwInput').focus();
-    const box=document.querySelector('.pw-box');
-    box.style.transform='translateX(-8px)';
-    setTimeout(()=>{box.style.transform='translateX(8px)';},100);
-    setTimeout(()=>{box.style.transform='translateX(0)';},200);
-    return;
-  }
-  // 먼저 저장 후 초기화
-  const action=pwAction;
-  const delId=pwDelId;
-  pwAction=null;pwDelId=null;pwDelName=null;
-  // 모달 닫기
-  document.getElementById('pwOverlay').classList.remove('show');
-  // 액션 실행
-  if(action==='upload'){
-    document.getElementById('libInput').click();
-  }else if(action==='delete'){
-    await libDelete(delId);
-  }
-}
-
-/* ── 드래그&드롭 설정 ── */
+/* ═══════════════════
+   드래그&드롭 설정
+═══════════════════ */
 function libSetup(){
-  const drop=document.getElementById('libDrop');
-  const input=document.getElementById('libInput');
-  if(!drop||!input)return;
-  drop.addEventListener('click',()=>pwAsk('upload',null,null));
-  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
-  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
-  drop.addEventListener('drop',e=>{
-    e.preventDefault();drop.classList.remove('over');
-    // Store dragged files, then ask for password
-    const files=e.dataTransfer.files;
-    pwAsk('upload',null,null);
-    // After password confirmed, input.click() is called
-    // But for drag&drop we need to handle differently
-    const handler=()=>{
-      input.removeEventListener('change',handler);
-      libDoUpload(files);
-    };
-    // Override: directly upload after password
-    const origConfirm=window.pwConfirm;
-    window.pwConfirm=async()=>{
-      const pw=document.getElementById('pwInput').value;
-      if(pw!==FS_PW){
-        document.getElementById('pwErr').style.display='block';
-        document.getElementById('pwInput').value='';
+  const drop  = document.getElementById('libDrop');
+  const input = document.getElementById('libInput');
+  if(!drop || !input) return;
+
+  // 드롭존 클릭 → 비번 먼저
+  drop.addEventListener('click', ()=> pwAsk('upload', null, null));
+
+  // 드래그 오버
+  drop.addEventListener('dragover', e =>{ e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('over'));
+
+  // 파일 드롭 → 비번 먼저, 확인 후 업로드
+  drop.addEventListener('drop', e =>{
+    e.preventDefault();
+    drop.classList.remove('over');
+    const droppedFiles = e.dataTransfer.files;
+    if(!droppedFiles || droppedFiles.length === 0) return;
+    // 비번 확인 후 업로드
+    _pwAction = 'upload';
+    _pwDelId  = null;
+    const icon  = document.getElementById('pwIcon');
+    const title = document.getElementById('pwTitle');
+    const sub   = document.getElementById('pwSub');
+    if(icon)  icon.textContent  = '📤';
+    if(title) title.textContent = '업로드 인증';
+    if(sub)   sub.textContent   = `${droppedFiles.length}개 파일을 업로드하려면 비밀번호를 입력하세요`;
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwErr').style.display = 'none';
+    document.getElementById('pwOverlay').classList.add('show');
+    // 비번 확인 후 이 파일들을 업로드하도록 일회용 핸들러
+    const origOk = document.querySelector('.pw-ok').onclick;
+    document.querySelector('.pw-ok').onclick = async function(){
+      const pw = document.getElementById('pwInput').value.trim();
+      if(pw !== FS_PW){
+        document.getElementById('pwErr').style.display = 'block';
+        document.getElementById('pwInput').value = '';
         document.getElementById('pwInput').focus();
         return;
       }
-      pwClose();
-      window.pwConfirm=origConfirm;
-      await libDoUpload(files);
+      document.getElementById('pwOverlay').classList.remove('show');
+      document.querySelector('.pw-ok').onclick = origOk; // 복원
+      await libDoUpload(droppedFiles);
     };
+    setTimeout(()=> document.getElementById('pwInput').focus(), 150);
   });
-  input.addEventListener('change',e=>{
+
+  // 파일 선택 후 업로드
+  input.addEventListener('change', e =>{
     libDoUpload(e.target.files);
-    e.target.value='';
+    e.target.value = '';
   });
 }
+
 
 /* ── SCROLL ANIMATE ── */
 const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
