@@ -744,7 +744,7 @@ function pwAsk(action,delId,delName){
 
 function pwClose(){
   document.getElementById('pwOverlay').classList.remove('show');
-  pwAction=null;pwDelId=null;pwDelName=null;
+  // ⚠️ action/delId 는 pwConfirm 에서 사용 후 초기화
 }
 
 async function pwConfirm(){
@@ -753,18 +753,23 @@ async function pwConfirm(){
     document.getElementById('pwErr').style.display='block';
     document.getElementById('pwInput').value='';
     document.getElementById('pwInput').focus();
-    // Shake animation
     const box=document.querySelector('.pw-box');
     box.style.transform='translateX(-8px)';
     setTimeout(()=>{box.style.transform='translateX(8px)';},100);
     setTimeout(()=>{box.style.transform='translateX(0)';},200);
     return;
   }
-  pwClose();
-  if(pwAction==='upload'){
+  // 먼저 저장 후 초기화
+  const action=pwAction;
+  const delId=pwDelId;
+  pwAction=null;pwDelId=null;pwDelName=null;
+  // 모달 닫기
+  document.getElementById('pwOverlay').classList.remove('show');
+  // 액션 실행
+  if(action==='upload'){
     document.getElementById('libInput').click();
-  }else if(pwAction==='delete'){
-    await libDelete(pwDelId);
+  }else if(action==='delete'){
+    await libDelete(delId);
   }
 }
 
