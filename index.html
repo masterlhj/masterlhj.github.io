@@ -471,18 +471,18 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
 .fade-up.visible { opacity: 1; transform: none; }
 
 /* ── PASSWORD MODAL ── */
-.pw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;}
+.pw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;}
 .pw-overlay.show{display:flex;}
-.pw-box{background:#152d56;border:2px solid #b38b00;padding:36px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.6);}
+.pw-box{background:#152d56;border:2px solid #b38b00;padding:32px 28px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.6);}
 .pw-icon{font-size:32px;text-align:center;margin-bottom:10px;}
-.pw-title{font-family:'Cormorant SC','Georgia',serif;font-size:20px;color:white;margin-bottom:8px;text-align:center;}
-.pw-sub{font-family:'Source Serif 4','Georgia',serif;font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:22px;text-align:center;line-height:1.5;}
-.pw-input{width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:'JetBrains Mono',monospace;font-size:20px;margin-bottom:14px;outline:none;letter-spacing:0.25em;text-align:center;}
+.pw-title{font-family:'Cormorant SC','Georgia',serif;font-size:19px;color:white;margin-bottom:6px;text-align:center;}
+.pw-sub{font-family:'Source Serif 4','Georgia',serif;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;text-align:center;line-height:1.5;}
+.pw-input{width:100%;padding:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:'JetBrains Mono',monospace;font-size:20px;margin-bottom:12px;outline:none;letter-spacing:0.25em;text-align:center;}
 .pw-input:focus{border-color:#b38b00;}
 .pw-btns{display:flex;gap:10px;}
-.pw-ok{flex:1;padding:14px;background:#b38b00;border:none;color:white;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;min-height:48px;transition:background 0.2s;}
+.pw-ok{flex:1;padding:13px;background:#b38b00;border:none;color:white;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;min-height:48px;transition:background 0.2s;}
 .pw-ok:hover{background:#d4a800;}
-.pw-cancel{padding:14px 20px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;min-height:48px;}
+.pw-cancel{padding:13px 18px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;min-height:48px;}
 .pw-cancel:hover{border-color:rgba(255,255,255,0.5);color:white;}
 .pw-err{font-family:'JetBrains Mono',monospace;font-size:11px;color:#f87171;margin-top:10px;display:none;text-align:center;padding:8px;background:rgba(139,26,26,0.3);}
 
@@ -583,7 +583,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
       <div class="sec-fm-header"><div class="sec-fm-title">Expertise Documents</div><div class="sec-fm-sub">Upload / Download</div></div>
       <div class="sec-fm-body">
         <input type="file" id="fi-exp" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-exp').click()">📁 Upload File</button>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-exp')">📁 Upload File</button>
         <div class="sec-file-list" id="fl-exp"></div>
       </div>
     </div>
@@ -615,7 +615,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
       <div class="sec-fm-header"><div class="sec-fm-title">Career Documents</div><div class="sec-fm-sub">Reports · Certificates</div></div>
       <div class="sec-fm-body">
         <input type="file" id="fi-car" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-car').click()">📁 Upload File</button>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-car')">📁 Upload File</button>
         <div class="sec-file-list" id="fl-car"></div>
       </div>
     </div>
@@ -644,7 +644,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
       <div class="sec-fm-header"><div class="sec-fm-title">Research Paper Files</div><div class="sec-fm-sub">Papers · Data</div></div>
       <div class="sec-fm-body">
         <input type="file" id="fi-pub" multiple>
-        <button class="btn-upload-sm" onclick="document.getElementById('fi-pub').click()">📁 Upload File</button>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-pub')">📁 Upload File</button>
         <div class="sec-file-list" id="fl-pub"></div>
       </div>
     </div>
@@ -668,7 +668,7 @@ footer { background: var(--navy); padding: 28px var(--px); text-align: center; }
           <div class="drop-sub">DOCX · XLSX · PDF · CSV · PNG · PPTX</div>
         </div>
         <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.pdf,.csv,.png,.jpg,.pptx,.py,.txt">
-        <button class="btn-gold" onclick="document.getElementById('fileInput').click()">📁 Select Files to Upload</button>
+        <button class="btn-gold" onclick="pwAsk('upload',0,'')">🔐 Select Files to Upload</button>
         <div class="file-list" id="fileList">
           <div class="empty-msg" id="emptyMsg">No files stored yet.</div>
         </div>
@@ -993,6 +993,68 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+/* ════════════════════════════════════
+   비밀번호 팝업 시스템
+   FS_PW = 관리자 비밀번호 (여기서 변경)
+════════════════════════════════════ */
+const FS_PW = 'aiquant2026';
+
+let _pwAction = null;
+let _pwId     = 0;
+let _pwMeta   = '';
+
+function pwAsk(action, id, meta) {
+  _pwAction = action; _pwId = id; _pwMeta = meta;
+  const icon=document.getElementById('pwIcon');
+  const title=document.getElementById('pwTitle');
+  const sub=document.getElementById('pwSub');
+  if(action==='upload'||action==='sec_upload'){
+    icon.textContent='📤';title.textContent='업로드 인증';
+    sub.textContent='파일을 업로드하려면 관리자 비밀번호를 입력하세요';
+  } else {
+    icon.textContent='🗑️';title.textContent='삭제 인증';
+    sub.textContent='파일을 삭제하려면 관리자 비밀번호를 입력하세요';
+  }
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').style.display='none';
+  document.getElementById('pwOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('pwInput').focus(),100);
+}
+
+function pwClose(){
+  document.getElementById('pwOverlay').classList.remove('show');
+  _pwAction=null;_pwId=0;_pwMeta='';
+}
+
+async function pwConfirm(){
+  const pw=document.getElementById('pwInput').value;
+  if(pw!==FS_PW){
+    document.getElementById('pwErr').style.display='block';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+    const box=document.querySelector('.pw-box');
+    if(box){box.style.transform='translateX(-8px)';setTimeout(()=>{box.style.transform='translateX(8px)';},80);setTimeout(()=>{box.style.transform='none';},160);}
+    return;
+  }
+  /* 값 저장 → 즉시 초기화 → 모달 닫기 → 실행 */
+  const action=_pwAction, id=_pwId, meta=_pwMeta;
+  _pwAction=null;_pwId=0;_pwMeta='';
+  document.getElementById('pwOverlay').classList.remove('show');
+
+  if(action==='upload'){
+    document.getElementById('fileInput').click();
+  } else if(action==='sec_upload'){
+    document.getElementById(meta).click();
+  } else if(action==='delete'){
+    await dbDel(id);renderGlobal();
+  } else if(action==='sec_delete'){
+    const [sec,listId]=meta.split('|');
+    await dbDel(id);renderSection(sec,listId);
+  }
+}
+
+
 /* INDEXEDDB */
 const DB='AIQuantFiles';let db=null;
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=e=>e.target.result.createObjectStore('files',{keyPath:'id',autoIncrement:true});r.onsuccess=e=>{db=e.target.result;res();};r.onerror=rej;});}
@@ -1016,7 +1078,7 @@ async function renderGlobal(){
       <div class="file-meta">${sz(f.size)} · ${dt(f.ts)}</div>
       <div class="file-btns">
         <button class="btn-dl" onclick="dlStored(${f.id})">⬇ Download</button>
-        <button class="btn-del" onclick="delGlobal(${f.id})">✕ Delete</button>
+        <button class="btn-del" onclick="pwAsk('delete',${f.id},'del')">🔐 Delete</button>
       </div>`;
     list.appendChild(d);
   });
@@ -1034,7 +1096,7 @@ async function renderSection(sec,listId){
       <div class="sfi-meta">${sz(f.size)} · ${dt(f.ts)}</div>
       <div class="sfi-btns">
         <button class="btn-sdl" onclick="dlStored(${f.id})">⬇ Download</button>
-        <button class="btn-sdel" onclick="delSection(${f.id},'${sec}','${listId}')">✕</button>
+        <button class="btn-sdel" onclick="pwAsk('sec_delete',${f.id},'${sec}|${listId}')">🔐</button>
       </div>`;
     list.appendChild(d);
   });
@@ -1060,13 +1122,13 @@ async function dlStored(id){
   const a=document.createElement('a');a.href=url;a.download=f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
-async function delGlobal(id){pwAsk(id,'global',null);}
-async function delSection(id,sec,lid){pwAsk(id,'section',{sec,lid});}
+/* delGlobal: replaced by pwAsk */
+/* delSection: replaced by pwAsk */
 
 /* global upload */
 const dz=document.getElementById('dropZone');
 const fi=document.getElementById('fileInput');
-dz.addEventListener('click',()=>fi.click());
+dz.addEventListener('click',()=>pwAsk('upload',0,''));
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
 dz.addEventListener('drop',async e=>{e.preventDefault();dz.classList.remove('drag-over');for(const f of Array.from(e.dataTransfer.files))await storeFile(f,null);renderGlobal();});
@@ -1103,61 +1165,6 @@ openDB().then(()=>{
   setupSec('fi-edu','edu','fl-edu');
 });
 
-
-/* ═══════════════════════════════════
-   비밀번호 팝업 (삭제 보호)
-   비밀번호 변경: PW_ADMIN 값 수정
-═══════════════════════════════════ */
-const PW_ADMIN = 'aiquant2026';
-let _pwId   = null;
-let _pwType = null;
-let _pwMeta = null;
-
-function pwAsk(id, type, meta) {
-  _pwId   = id;
-  _pwType = type;
-  _pwMeta = meta;
-  document.getElementById('pwInput').value = '';
-  document.getElementById('pwErr').style.display = 'none';
-  document.getElementById('pwOverlay').classList.add('show');
-  setTimeout(() => document.getElementById('pwInput').focus(), 150);
-}
-
-function pwClose() {
-  document.getElementById('pwOverlay').classList.remove('show');
-  _pwId = null; _pwType = null; _pwMeta = null;
-}
-
-async function pwConfirm() {
-  const pw = document.getElementById('pwInput').value;
-  if (pw !== PW_ADMIN) {
-    document.getElementById('pwErr').style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
-    const box = document.querySelector('.pw-box');
-    box.style.transition = 'transform 0.1s';
-    box.style.transform = 'translateX(-8px)';
-    setTimeout(() => { box.style.transform = 'translateX(8px)'; }, 100);
-    setTimeout(() => { box.style.transform = 'translateX(0)'; }, 200);
-    return;
-  }
-  // ✅ 비번 맞음 - 값 먼저 저장, 그 다음 초기화, 그 다음 실행
-  const id   = _pwId;
-  const type = _pwType;
-  const meta = _pwMeta;
-  // 모달 닫기
-  document.getElementById('pwOverlay').classList.remove('show');
-  _pwId = null; _pwType = null; _pwMeta = null;
-  // 삭제 실행
-  if (type === 'global') {
-    await dbDel(id);
-    renderGlobal();
-  } else if (type === 'section') {
-    await dbDel(id);
-    renderSection(meta.sec, meta.lid);
-  }
-}
-
 /* SCROLL ANIMATE */
 const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
 document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
@@ -1170,9 +1177,9 @@ document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
 <!-- PASSWORD MODAL -->
 <div class="pw-overlay" id="pwOverlay">
   <div class="pw-box">
-    <div class="pw-icon">🔐</div>
-    <div class="pw-title">관리자 인증</div>
-    <div class="pw-sub">삭제하려면 관리자 비밀번호를 입력하세요</div>
+    <div class="pw-icon" id="pwIcon">🔐</div>
+    <div class="pw-title" id="pwTitle">관리자 인증</div>
+    <div class="pw-sub" id="pwSub">비밀번호를 입력하세요</div>
     <input type="password" class="pw-input" id="pwInput"
       placeholder="••••••••"
       onkeydown="if(event.key==='Enter')pwConfirm()">
@@ -1180,7 +1187,7 @@ document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
       <button class="pw-ok" onclick="pwConfirm()">✓ 확인</button>
       <button class="pw-cancel" onclick="pwClose()">✕ 취소</button>
     </div>
-    <div class="pw-err" id="pwErr">❌ 비밀번호가 틀렸습니다. 다시 입력하세요.</div>
+    <div class="pw-err" id="pwErr">❌ 비밀번호가 틀렸습니다</div>
   </div>
 </div>
 
