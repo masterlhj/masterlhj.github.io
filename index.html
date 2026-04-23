@@ -1,1 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AIQuant Financial Engineering Research</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cormorant+SC:wght@400;500;600&family=Source+Serif+4:wght@300;400;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --navy:#0b1d3a;--navy2:#152d56;--navy3:#1e3a6e;
+  --teal:#0e4d6e;--teal2:#1a6b8a;
+  --gold:#8a6500;--gold2:#b38b00;--gold3:#d4a800;--gold4:#f0c832;
+  --green:#0d5c3a;--red:#8b1a1a;
+  --purple:#3b1f6e;--copper:#7a3a0a;
+  --silver:#f0f2f5;--silver2:#e4e7ec;
+  --white:#ffffff;--border:#c8cdd6;
+  --text:#0b1d3a;--text2:#1e2d45;--text3:#2d3f58;
+  --serif:'Cormorant Garamond','Georgia',serif;
+  --sc:'Cormorant SC','Georgia',serif;
+  --body:'Source Serif 4','Georgia',serif;
+  --mono:'JetBrains Mono',monospace;
+  --px:16px;--py:40px;
+}
+@media(min-width:640px){:root{--px:28px;--py:56px;}}
+@media(min-width:1024px){:root{--px:40px;--py:72px;}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{background:var(--silver);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.7;overflow-x:hidden;width:100%;max-width:100vw;}
+img,canvas{max-width:100%;display:block;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:#8a9ab0;}
+.topbar{position:fixed;top:0;left:0;right:0;width:100%;height:36px;background:var(--navy);display:flex;align-items:center;padding:0 var(--px);z-index:300;overflow:hidden;}
+.tb-brand{font-family:var(--sc);font-size:11px;letter-spacing:0.1em;color:rgba(255,255,255,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.tb-mkt{display:flex;gap:14px;flex-shrink:0;margin-left:12px;}
+.tb-item{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.7);white-space:nowrap;}
+.tb-item .sym{color:rgba(255,255,255,0.35);}.tb-item .val{color:#fff;font-weight:500;}
+.t-up{color:#4ade80;}.t-dn{color:#f87171;}
+@media(max-width:480px){.tb-item:nth-child(n+3){display:none;}}
+@media(max-width:360px){.tb-item:nth-child(n+2){display:none;}}
+nav{position:fixed;top:36px;left:0;right:0;width:100%;background:var(--white);border-bottom:2px solid var(--navy);z-index:299;box-shadow:0 2px 10px rgba(11,29,58,0.1);}
+.nav-inner{display:flex;align-items:center;padding:0 var(--px);height:54px;overflow:hidden;}
+.nav-logo{flex-shrink:0;}
+.nav-logo-main{font-family:var(--sc);font-size:clamp(11px,2.5vw,16px);font-weight:600;letter-spacing:0.06em;color:var(--navy);line-height:1;}
+.nav-logo-sub{font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--gold2);text-transform:uppercase;margin-top:2px;}
+.nav-scroll{display:flex;overflow-x:auto;margin-left:12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;}
+.nav-scroll::-webkit-scrollbar{display:none;}
+.nav-links{display:flex;list-style:none;}
+.nav-links a{display:block;height:54px;line-height:54px;padding:0 10px;font-family:var(--sc);font-size:clamp(10px,2vw,12px);letter-spacing:0.08em;color:var(--navy2);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;}
+.nav-links a:hover{color:var(--gold2);border-bottom-color:var(--gold2);}
+main{margin-top:90px;width:100%;}
+.sin{width:100%;max-width:1280px;margin:0 auto;padding:var(--py) var(--px);}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:36px;padding-bottom:14px;border-bottom:2px solid var(--navy);}
+.sec-num{font-family:var(--mono);font-size:10px;color:var(--gold2);letter-spacing:0.2em;}
+.sec-ttl{font-family:var(--serif);font-size:clamp(22px,5vw,30px);font-weight:400;color:var(--navy);}
+.sec-ttl-w{font-family:var(--serif);font-size:clamp(22px,5vw,30px);font-weight:400;color:white;}
+.sec-num-w{font-family:var(--mono);font-size:10px;color:var(--gold4);letter-spacing:0.2em;}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 60%,var(--teal) 100%);padding:var(--py) var(--px);position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);background-size:40px 40px;}
+.hero-content{position:relative;z-index:1;}
+.hero-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold4);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.hero-eyebrow::before{content:'';width:20px;height:1px;background:var(--gold4);flex-shrink:0;}
+.hero-name{font-family:var(--serif);font-size:clamp(36px,8vw,68px);font-weight:400;line-height:1.05;color:white;margin-bottom:6px;}
+.hero-ko{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.6);letter-spacing:0.12em;margin-bottom:20px;}
+.hero-rule{width:48px;height:2px;background:var(--gold4);margin-bottom:20px;}
+.hero-desc{font-family:var(--body);font-size:14px;font-weight:300;line-height:1.85;color:rgba(255,255,255,0.88);margin-bottom:28px;}
+.hero-desc strong{color:var(--gold4);font-weight:600;}
+.hero-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px;}
+.hpill{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 11px;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.07);}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(min-width:640px){.hero-layout{display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start;}}
+@media(min-width:1024px){.hero-layout{grid-template-columns:1fr 380px;}}
+.stat-box{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);padding:16px;text-align:center;}
+.stat-val{font-family:var(--serif);font-size:clamp(28px,5vw,36px);color:var(--gold4);line-height:1;}
+.stat-unit{font-family:var(--mono);font-size:11px;color:var(--gold4);margin-bottom:3px;}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);}
+.mkt-sec{background:var(--navy2);border-bottom:3px solid var(--gold2);}
+.mkt-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.mkt-ttl{font-family:var(--sc);font-size:clamp(15px,3vw,19px);letter-spacing:0.08em;color:white;}
+.mkt-live{font-family:var(--mono);font-size:9px;color:#4ade80;display:flex;align-items:center;gap:5px;}
+.mkt-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{50%{opacity:0.2;}}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(min-width:1024px){.charts-grid{grid-template-columns:repeat(4,1fr);}}
+.chart-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);padding:12px;}
+.chart-box-title{font-family:var(--sc);font-size:10px;letter-spacing:0.07em;color:rgba(255,255,255,0.65);margin-bottom:2px;}
+.chart-box-val{font-family:var(--mono);font-size:clamp(14px,3vw,18px);font-weight:500;color:white;margin-bottom:2px;}
+.chart-box-chg{font-family:var(--mono);font-size:10px;margin-bottom:8px;}
+canvas.cbox{height:56px!important;width:100%!important;}
+.rates-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(min-width:640px){.rates-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.rates-grid{grid-template-columns:repeat(6,1fr);}}
+.rate-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);padding:10px 12px;}
+.rate-lbl{font-family:var(--mono);font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-bottom:3px;}
+.rate-val{font-family:var(--mono);font-size:13px;font-weight:500;color:white;}
+.rate-chg{font-family:var(--mono);font-size:10px;}
+.exp-grid{display:grid;grid-template-columns:1fr;gap:0;border:2px solid var(--navy);}
+@media(min-width:640px){.exp-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.exp-grid{grid-template-columns:repeat(3,1fr);}}
+.exp-card{padding:28px 22px;border-bottom:1px solid rgba(255,255,255,0.1);}
+@media(min-width:640px){.exp-card{border-right:1px solid rgba(255,255,255,0.1);}}
+.exp-card:last-child{border-bottom:none;}
+.exp-cn{font-family:var(--mono);font-size:10px;opacity:0.55;margin-bottom:12px;letter-spacing:0.14em;}
+.exp-icon{font-size:24px;margin-bottom:10px;display:block;}
+.exp-ct{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:10px;line-height:1.2;}
+.exp-cd{font-family:var(--body);font-size:13px;line-height:1.75;margin-bottom:14px;opacity:0.9;}
+.exp-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.etag{font-family:var(--mono);font-size:8px;letter-spacing:0.07em;text-transform:uppercase;padding:3px 8px;border:1px solid;opacity:0.8;}
+.ec1{background:var(--navy);color:white;}.ec1 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec2{background:var(--teal);color:white;}.ec2 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec3{background:var(--green);color:white;}.ec3 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec4{background:var(--purple);color:white;}.ec4 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec5{background:var(--copper);color:white;}.ec5 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.ec6{background:var(--gold);color:white;}.ec6 .etag{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);}
+.c-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.c-tbl{width:100%;min-width:600px;border-collapse:collapse;}
+.c-tbl th{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--navy2);padding:0 12px 12px;text-align:left;border-bottom:2px solid var(--navy);}
+.c-tbl th:first-child{padding-left:0;}
+.c-tbl td{padding:16px 12px;border-bottom:1px solid var(--silver2);vertical-align:top;}
+.c-tbl td:first-child{padding-left:0;}
+.c-tbl tr:last-child td{border-bottom:none;}
+.c-tbl tr:hover td{background:rgba(11,29,58,0.03);}
+.c-period{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);white-space:nowrap;}
+.c-role{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--navy);margin-bottom:3px;}
+.c-org{font-family:var(--body);font-size:12px;color:var(--text2);margin-bottom:3px;font-weight:600;}
+.c-det{font-family:var(--body);font-size:11px;color:var(--text3);font-style:italic;}
+.bdg{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 9px;font-weight:600;color:white;white-space:nowrap;}
+.bdg-pl{background:var(--navy2);}.bdg-pm{background:var(--gold);}.bdg-dir{background:var(--green);}.bdg-adv{background:var(--teal);}
+.tbl-hint{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:8px;display:none;}
+@media(max-width:639px){.tbl-hint{display:block;}}
+.books{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:28px;}
+@media(min-width:640px){.books{grid-template-columns:1fr 1fr;}}
+.book{background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%);padding:28px;border-left:4px solid var(--gold4);}
+.book-yr{font-family:var(--mono);font-size:10px;color:var(--gold4);margin-bottom:10px;}
+.book-ttl{font-family:var(--serif);font-size:17px;font-style:italic;color:white;line-height:1.4;margin-bottom:8px;}
+.book-pub{font-family:var(--body);font-size:11px;color:rgba(255,255,255,0.4);}
+.pubs{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:640px){.pubs{grid-template-columns:1fr 1fr;}}
+.pub{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--navy);padding:22px;}
+.pub-yr{font-family:var(--mono);font-size:10px;color:var(--gold2);margin-bottom:8px;font-weight:500;}
+.pub-ttl{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--navy);line-height:1.5;margin-bottom:7px;}
+.pub-jnl{font-family:var(--body);font-size:12px;color:var(--text2);font-weight:600;}
+.pub-award{font-family:var(--mono);font-size:9px;color:var(--gold2);margin-top:7px;display:flex;align-items:center;gap:4px;}
+.pub-award::before{content:'★';}
+.fm-sec{background:var(--navy2);border-bottom:3px solid var(--gold2);}
+.fm-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:768px){.fm-grid{grid-template-columns:1fr 1fr;}}
+.fm-panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);padding:24px;}
+.fm-panel-title{font-family:var(--sc);font-size:16px;letter-spacing:0.08em;color:white;margin-bottom:5px;}
+.fm-panel-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:18px;}
+.drop-zone{border:2px dashed rgba(255,255,255,0.22);padding:24px 12px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.02);}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--gold4);background:rgba(212,168,0,0.07);}
+.drop-icon{font-size:30px;margin-bottom:8px;display:block;}
+.drop-text{font-family:var(--body);font-size:14px;color:rgba(255,255,255,0.78);margin-bottom:4px;}
+.drop-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.38);letter-spacing:0.07em;}
+input[type=file]{display:none;}
+.btn-gold{display:block;width:100%;margin-top:12px;padding:13px;background:var(--gold2);color:white;font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border:none;font-weight:600;transition:background 0.2s;text-align:center;}
+.btn-gold:hover{background:var(--gold3);}
+.file-list{margin-top:16px;}
+.file-item{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:4px 10px;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:8px;}
+.file-icon{font-size:22px;grid-row:1/3;align-self:center;}
+.file-name{font-family:var(--body);font-size:13px;color:white;font-weight:600;word-break:break-all;}
+.file-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);}
+.file-btns{grid-column:1/-1;display:flex;gap:8px;margin-top:8px;}
+.btn-dl{flex:1;padding:10px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;transition:background 0.2s;text-align:center;min-height:44px;}
+.btn-dl:hover{background:var(--gold3);}
+.btn-del{padding:10px 16px;background:rgba(139,26,26,0.4);border:1px solid rgba(185,28,28,0.5);color:rgba(255,255,255,0.8);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;min-height:44px;white-space:nowrap;}
+.btn-del:hover{background:#b91c1c;}
+.empty-msg{font-family:var(--body);font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:18px;font-style:italic;}
+.sample-file{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:3px 12px;padding:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.11);margin-bottom:8px;transition:background 0.2s;}
+.sample-file:hover{background:rgba(255,255,255,0.09);}
+.sf-icon{font-size:24px;grid-row:1/4;align-self:center;}
+.sf-name{font-family:var(--body);font-size:14px;color:white;font-weight:600;}
+.sf-desc{font-family:var(--body);font-size:11px;color:rgba(255,255,255,0.48);}
+.sf-dl-row{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:8px;}
+.sf-tag{font-family:var(--mono);font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 9px;color:var(--gold4);border:1px solid var(--gold4);white-space:nowrap;}
+.sf-btn{flex:1;padding:10px;background:var(--gold2);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;transition:background 0.2s;text-align:center;min-height:44px;}
+.sf-btn:hover{background:var(--gold3);}
+.sec-fm{margin-top:36px;border:1px solid var(--border);background:var(--white);}
+.sec-fm-header{background:var(--navy);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.sec-fm-title{font-family:var(--sc);font-size:13px;letter-spacing:0.1em;color:white;}
+.sec-fm-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.45);letter-spacing:0.1em;text-transform:uppercase;}
+.sec-fm-body{padding:18px;}
+.btn-upload-sm{display:block;width:100%;margin-bottom:4px;padding:11px;background:var(--navy);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;transition:background 0.2s;text-align:center;min-height:44px;}
+.btn-upload-sm:hover{background:var(--navy3);}
+.sec-file-list{margin-top:14px;}
+.sec-file-item{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:3px 10px;padding:12px;background:var(--silver);border:1px solid var(--border);margin-bottom:6px;}
+.sfi-icon{font-size:20px;grid-row:1/4;align-self:center;}
+.sfi-name{font-family:var(--body);font-size:13px;color:var(--navy);font-weight:600;word-break:break-all;}
+.sfi-meta{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.sfi-btns{grid-column:1/-1;display:flex;gap:7px;margin-top:8px;}
+.btn-sdl{flex:1;padding:10px;background:var(--navy);border:none;color:white;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;transition:background 0.2s;text-align:center;min-height:44px;}
+.btn-sdl:hover{background:var(--navy3);}
+.btn-sdel{padding:10px 14px;background:none;border:1px solid var(--red);color:var(--red);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all 0.2s;min-height:44px;white-space:nowrap;}
+.btn-sdel:hover{background:var(--red);color:white;}
+.sec-empty{font-family:var(--body);font-size:12px;color:var(--text3);font-style:italic;padding:10px 0;}
+.edu-row{padding:20px 0;border-bottom:1px solid var(--silver2);}
+.edu-row:last-child{border-bottom:none;}
+.edu-period{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);margin-bottom:5px;}
+.edu-deg{font-family:var(--serif);font-size:clamp(18px,4vw,22px);font-weight:400;color:var(--navy);margin-bottom:4px;}
+.edu-sch{font-family:var(--body);font-size:13px;color:var(--text2);font-weight:600;}
+.sk-cols{display:grid;grid-template-columns:1fr;gap:32px;margin-top:36px;}
+@media(min-width:640px){.sk-cols{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.sk-cols{grid-template-columns:repeat(3,1fr);}}
+.sk-gt{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--navy2);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--navy);}
+.sk-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.sk-lbl{font-family:var(--body);font-size:13px;font-weight:600;color:var(--navy);width:120px;flex-shrink:0;}
+.sk-track{flex:1;height:4px;background:var(--silver2);border-radius:2px;}
+.sk-fill{height:100%;border-radius:2px;transition:width 1.4s cubic-bezier(0.16,1,0.3,1);}
+.sk-navy{background:var(--navy);}.sk-gold{background:linear-gradient(90deg,var(--gold),var(--gold3));}.sk-teal{background:linear-gradient(90deg,var(--teal),var(--teal2));}
+.sk-pct{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--navy2);width:32px;text-align:right;}
+.con-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--navy);border:2px solid var(--navy);}
+@media(min-width:640px){.con-grid{grid-template-columns:repeat(4,1fr);}}
+.con-card{background:var(--white);padding:22px 18px;transition:background 0.2s;}
+.con-card:hover{background:var(--silver);}
+.con-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold2);margin-bottom:8px;}
+.con-val{font-family:var(--serif);font-size:clamp(13px,2.5vw,16px);color:var(--navy);margin-bottom:4px;font-weight:500;word-break:break-all;}
+.con-sub{font-family:var(--body);font-size:11px;color:var(--text2);font-weight:600;}
+.sec-white{background:var(--white);border-bottom:1px solid var(--border);}
+.sec-silver{background:var(--silver);border-bottom:1px solid var(--border);}
+footer{background:var(--navy);padding:28px var(--px);text-align:center;}
+.f-l{font-family:var(--serif);font-size:15px;font-weight:300;color:rgba(255,255,255,0.65);margin-bottom:8px;}
+.f-r{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.28);}
+.fade-up{opacity:0;transform:translateY(12px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.fade-up.visible{opacity:1;transform:none;}
+
+/* ── PASSWORD MODAL ── */
+.pw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;}
+.pw-overlay.show{display:flex;}
+.pw-box{background:#152d56;border:2px solid #b38b00;padding:32px 28px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.6);}
+.pw-icon{font-size:32px;text-align:center;margin-bottom:10px;}
+.pw-title{font-family:'Cormorant SC','Georgia',serif;font-size:19px;color:white;margin-bottom:6px;text-align:center;}
+.pw-sub{font-family:'Source Serif 4','Georgia',serif;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;text-align:center;line-height:1.5;}
+.pw-input{width:100%;padding:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;font-family:'JetBrains Mono',monospace;font-size:20px;margin-bottom:12px;outline:none;letter-spacing:0.25em;text-align:center;}
+.pw-input:focus{border-color:#b38b00;}
+.pw-btns{display:flex;gap:10px;}
+.pw-ok{flex:1;padding:13px;background:#b38b00;border:none;color:white;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;min-height:48px;transition:background 0.2s;}
+.pw-ok:hover{background:#d4a800;}
+.pw-cancel{padding:13px 18px;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;min-height:48px;}
+.pw-cancel:hover{border-color:rgba(255,255,255,0.5);color:white;}
+.pw-err{font-family:'JetBrains Mono',monospace;font-size:11px;color:#f87171;margin-top:10px;display:none;text-align:center;padding:8px;background:rgba(139,26,26,0.3);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-brand">AIQuant Financial Engineering Research</div>
+  <div class="tb-mkt" id="tb"></div>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-main">AIQuant FER</div>
+      <div class="nav-logo-sub">Lee Hong Jae · PhD</div>
+    </div>
+    <div class="nav-scroll">
+      <ul class="nav-links">
+        <li><a href="#expertise">Expertise</a></li>
+        <li><a href="#markets">Markets</a></li>
+        <li><a href="#career">Experience</a></li>
+        <li><a href="#publications">Research</a></li>
+        <li><a href="#files">Files</a></li>
+        <li><a href="#education">Education</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<section class="hero">
+  <div class="hero-content" style="max-width:1280px;margin:0 auto;">
+    <div class="hero-layout">
+      <div>
+        <div class="hero-eyebrow">PhD · Quantitative Finance · Financial Engineering</div>
+        <h1 class="hero-name">Ph.D. Lee Hong Jae</h1>
+        <div class="hero-ko">Pro Quant · Charles Lee · https://www.facebook.com/share/1CNHLezm6E/</div>
+        <div class="hero-rule"></div>
+        <p class="hero-desc">Senior quantitative finance professional with a <strong>PhD in Finance</strong> from Kyung Hee University. Two decades of institutional experience across <strong>risk management</strong>, <strong>asset allocation</strong>, <strong>derivatives pricing</strong>, and <strong>AI-driven financial analytics</strong>. Project leadership at PwC Samil, KPMG, Ernst &amp; Young, Deloitte, and Korea Exchange (KRX).</p>
+        <div class="hero-pills">
+          <span class="hpill">Black-Litterman SAA</span><span class="hpill">CreditMetrics</span><span class="hpill">Basel II/III</span><span class="hpill">VaR/CVaR</span><span class="hpill">Derivatives</span><span class="hpill">Deep Learning</span><span class="hpill">ALM/TAA/SAA</span><span class="hpill">Monte Carlo</span>
+        </div>
+      </div>
+      <div class="hero-stats" style="margin-top:24px;">
+        <div class="stat-box"><div class="stat-unit">PhD</div><div class="stat-lbl">Finance · Kyung Hee Univ.</div></div>
+        <div class="stat-box"><div class="stat-val">20+</div><div class="stat-lbl">Years Experience</div></div>
+        <div class="stat-box"><div class="stat-val">2</div><div class="stat-lbl">Books Published</div></div>
+        <div class="stat-box"><div class="stat-val">25+</div><div class="stat-lbl">Academic Papers</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="mkt-sec" id="markets">
+  <div class="sin" style="padding-top:32px;padding-bottom:32px;">
+    <div class="mkt-hdr">
+      <div class="mkt-ttl">Global Market Dashboard</div>
+      <div class="mkt-live" id="mkt-status">데이터 로딩중...</div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-box"><div class="chart-box-title">KOSPI</div><div class="chart-box-val" id="val-c0">--</div><div class="chart-box-chg" id="chg-c0">--</div><canvas id="c0" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">S&amp;P 500 Index</div><div class="chart-box-val" id="val-c1">--</div><div class="chart-box-chg" id="chg-c1">--</div><canvas id="c1" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">NASDAQ</div><div class="chart-box-val" id="val-c2">--</div><div class="chart-box-chg" id="chg-c2">--</div><canvas id="c2" class="cbox"></canvas></div>
+      <div class="chart-box"><div class="chart-box-title">USD/KRW</div><div class="chart-box-val" id="val-c3">--</div><div class="chart-box-chg" id="chg-c3">--</div><canvas id="c3" class="cbox"></canvas></div>
+    </div>
+    <div class="rates-grid">
+      <div class="rate-card" id="r-eurusd"><div class="rate-lbl">EUR/USD</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-usdjpy"><div class="rate-lbl">USD/JPY</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-spy"><div class="rate-lbl">S&amp;P 500</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card" id="r-qqq"><div class="rate-lbl">NASDAQ</div><div class="rate-val">--</div><div class="rate-chg">--</div></div>
+      <div class="rate-card"><div class="rate-lbl">KTB 10Y</div><div class="rate-val">3.245%</div><div class="rate-chg t-dn">▼−2bps</div></div>
+      <div class="rate-card"><div class="rate-lbl">BOK Base</div><div class="rate-val">3.50%</div><div class="rate-chg" style="color:rgba(255,255,255,0.4)">HOLD</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sec-silver" id="expertise">
+  <div class="sin">
+    <div class="sec-head fade-up"><div class="sec-num">01</div><h2 class="sec-ttl">Areas of Expertise</h2></div>
+    <div class="exp-grid fade-up">
+      <div class="exp-card ec1"><div class="exp-cn">01</div><div class="exp-icon">⬡</div><div class="exp-ct">Quantitative Risk Systems</div><div class="exp-cd">Settlement risk, market VaR, credit risk via CreditMetrics and KMV EDF. Enterprise risk systems for BC Card, Woori Bank, KRX, and Korea Post Insurance. Extreme VaR using GPD/GEV, RAAS/RADARS/RAMS.</div><div class="exp-tags"><span class="etag">VaR/CVaR</span><span class="etag">Extreme VaR</span><span class="etag">CreditMetrics</span><span class="etag">KMV EDF</span><span class="etag">Copula</span></div></div>
+      <div class="exp-card ec2"><div class="exp-cn">02</div><div class="exp-icon">◈</div><div class="exp-ct">Strategic Asset Allocation</div><div class="exp-cd">Black-Litterman inverse optimization, Risk-Budgeting, MVO, and ALM-based SAA with actuarial funded-ratio models. Delivered for NH Mutual Finance, Public School Pension, Korea Post Finance.</div><div class="exp-tags"><span class="etag">Black-Litterman</span><span class="etag">MVO</span><span class="etag">Risk Budgeting</span><span class="etag">ALM/SAA</span></div></div>
+      <div class="exp-card ec3"><div class="exp-cn">03</div><div class="exp-icon">△</div><div class="exp-ct">Derivatives Pricing &amp; Hedging</div><div class="exp-cd">Option pricing via CGMY Levy process, Merton Jump-Diffusion, Variance Gamma, Neural Network deep hedging (SNN/RNN). Barrier options, payers' swaption replication, Copula-based first-to-default CDX.</div><div class="exp-tags"><span class="etag">Black-Scholes</span><span class="etag">CGMY</span><span class="etag">Swaption</span><span class="etag">Monte Carlo</span></div></div>
+      <div class="exp-card ec4"><div class="exp-cn">04</div><div class="exp-icon">▦</div><div class="exp-ct">Basel II / III Credit Risk</div><div class="exp-cd">CreditManager™ (MSCI) full deployment for IRB economic capital. Stress tests via Credit Cycle Index. KMV EDF implicit default probability. OPMS design with Conditional VaR at Hana Bank.</div><div class="exp-tags"><span class="etag">Basel II/III</span><span class="etag">IRB</span><span class="etag">CreditManager</span><span class="etag">Stress Test</span></div></div>
+      <div class="exp-card ec5"><div class="exp-cn">05</div><div class="exp-icon">◉</div><div class="exp-ct">AI &amp; Machine Learning Finance</div><div class="exp-cd">Stock prediction via Random Forest, XGBoost, LSTM, GRU, Transformer (TFT), GNN/GCN. Volatility: EGARCH, APARCH, Wavelet-LSTM. FinBERT sentiment. RL trading via DQN/PPO.</div><div class="exp-tags"><span class="etag">LSTM/GRU</span><span class="etag">XGBoost</span><span class="etag">Transformer</span><span class="etag">GNN</span><span class="etag">FinBERT</span></div></div>
+      <div class="exp-card ec6"><div class="exp-cn">06</div><div class="exp-icon">◆</div><div class="exp-ct">Corporate Valuation &amp; Capital</div><div class="exp-cd">WACC/APV (Grinblatt-Titman &amp; Miles-Ezzell), EVA, DCF automation, MM optimal capital structure, CAPM/Hamada beta. Financial stability analysis for Korea Hydro &amp; Nuclear Power.</div><div class="exp-tags"><span class="etag">DCF/APV</span><span class="etag">EVA</span><span class="etag">WACC</span><span class="etag">CAPM</span></div></div>
+    </div>
+    <div class="sec-fm fade-up">
+      <div class="sec-fm-header"><div class="sec-fm-title">Expertise Documents</div><div class="sec-fm-sub">Upload / Download</div></div>
+      <div class="sec-fm-body">
+        <input type="file" id="fi-exp" multiple>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-exp')">🔐 Upload File</button>
+        <div class="sec-file-list" id="fl-exp"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec-white" id="career">
+  <div class="sin">
+    <div class="sec-head fade-up"><div class="sec-num">02</div><h2 class="sec-ttl">Professional Experience</h2></div>
+    <div class="tbl-hint">← Scroll table horizontally</div>
+    <div class="c-wrap fade-up">
+      <table class="c-tbl">
+        <thead><tr><th style="width:88px">Period</th><th>Project &amp; Description</th><th style="width:64px">Role</th><th>Client</th></tr></thead>
+        <tbody>
+          <tr><td><div class="c-period">2021</div></td><td><div class="c-role">Coupang Finance — FSS Licensing</div><div class="c-org">KPMG</div><div class="c-det">Liquidity risk &amp; ALM plans, business strategy documentation</div></td><td><span class="bdg bdg-pl">PL</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Coupang</td></tr>
+          <tr><td><div class="c-period">2019</div></td><td><div class="c-role">Asset Allocation — Black-Litterman &amp; Performance</div><div class="c-org">Ernst &amp; Young</div><div class="c-det">SAA measurement, Black-Litterman &amp; Risk-Budgeting optimization</div></td><td><span class="bdg bdg-pl">PL</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NH Mutual Finance</td></tr>
+          <tr><td><div class="c-period">2016</div></td><td><div class="c-role">Credit Risk Measurement System</div><div class="c-org">Deloitte &amp; Two L</div><div class="c-det">CreditManager (MSCI), Credit Cycle Index, KMV EDF, Copula</div></td><td><span class="bdg bdg-pl">PL</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NH Insurance</td></tr>
+          <tr><td><div class="c-period">2014–2017</div></td><td><div class="c-role">CEO — Quantum Fund Holdings</div><div class="c-org">Independent</div><div class="c-det">AI investment strategies, quantitative research, fintech advisory</div></td><td><span class="bdg bdg-dir">CEO</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Proprietary</td></tr>
+          <tr><td><div class="c-period">2013–2014</div></td><td><div class="c-role">CFO — QuantMatrix Platform</div><div class="c-org">NEOPM</div><div class="c-det">Stock portfolio, price forecasting, valuation automation</div></td><td><span class="bdg bdg-dir">CEO</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">NEOPM/KISDI</td></tr>
+          <tr><td><div class="c-period">2011</div></td><td><div class="c-role">Asset Allocation — Public School Pension</div><div class="c-org">KPMG Freelance</div><div class="c-det">ALM-based SAA, MVO / Black-Litterman / Risk-Budgeting</div></td><td><span class="bdg bdg-adv">Adv</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Pension Fund</td></tr>
+          <tr><td><div class="c-period">2009</div></td><td><div class="c-role">Settlement Risk — Korea Exchange</div><div class="c-org">PwC Samil</div><div class="c-det">Market VaR, Extreme VaR (GPD/GEV), RAAS/RADARS/RAMS</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">KRX</td></tr>
+          <tr><td><div class="c-period">2008–2009</div></td><td><div class="c-role">Senior Manager — Enterprise Risk Projects</div><div class="c-org">PwC Samil</div><div class="c-det">BC Card ERM/BCP, Korea Post Insurance RAAS</div></td><td><span class="bdg bdg-dir">Dir</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Multiple</td></tr>
+          <tr><td><div class="c-period">2006–2007</div></td><td><div class="c-role">Basel II — CreditManager™</div><div class="c-org">Korea Risk Management</div><div class="c-det">IRB economic capital, OPMS, Hana Bank MtM &amp; CVaR</div></td><td><span class="bdg bdg-pm">PM</span></td><td style="font-family:var(--body);font-size:12px;font-weight:600;color:var(--navy2)">Woori/Kyongnam/Hana</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sec-fm fade-up">
+      <div class="sec-fm-header"><div class="sec-fm-title">Career Documents</div><div class="sec-fm-sub">Reports · Certificates</div></div>
+      <div class="sec-fm-body">
+        <input type="file" id="fi-car" multiple>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-car')">🔐 Upload File</button>
+        <div class="sec-file-list" id="fl-car"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec-silver" id="publications">
+  <div class="sin">
+    <div class="sec-head fade-up"><div class="sec-num">03</div><h2 class="sec-ttl">Books &amp; Publications</h2></div>
+    <div class="books fade-up">
+      <div class="book"><div class="book-yr">2003 · Kyung Moon Publishing</div><div class="book-ttl">Financial Engineering — Simulation using Excel, VB, and Numerical Analysis</div><div class="book-pub">Kyung Moon Publishing Co.</div></div>
+      <div class="book"><div class="book-yr">2005 · Kyung Moon Publishing</div><div class="book-ttl">Financial Time-Series Analysis Using EViews</div><div class="book-pub">Kyung Moon Publishing Co.</div></div>
+    </div>
+    <div class="pubs fade-up">
+      <div class="pub"><div class="pub-yr">2023</div><div class="pub-ttl">Option Pricing and Portfolio Deep Hedging Using Neural Networks — SNN vs RNN</div><div class="pub-jnl">Global Management Journal, Vol. 20, No. 5</div></div>
+      <div class="pub"><div class="pub-yr">2022</div><div class="pub-ttl">Option Pricing Using Classical Tempered Stable Levy Process (CGMY) with Fourier Transform</div><div class="pub-jnl">Global Management Journal, Vol. 19, No. 5</div></div>
+      <div class="pub"><div class="pub-yr">2021</div><div class="pub-ttl">Market Risk Using Modified BARRA Beta Factor Model — t-Copula VaR &amp; Expected Shortfall</div><div class="pub-jnl">Global Management Journal, Vol. 18, No. 5</div></div>
+      <div class="pub"><div class="pub-yr">2020</div><div class="pub-ttl">Risk Budgeting Using Black-Litterman: Combining Investor Views with Market Equilibrium</div><div class="pub-jnl">Global Management Journal, Vol. 17, No. 5</div></div>
+      <div class="pub"><div class="pub-yr">2019</div><div class="pub-ttl">Effect of Tau and Lambda on Industrial Portfolio in Black-Litterman Inverse Optimization</div><div class="pub-jnl">Global Management Journal, Vol. 16, No. 4</div></div>
+      <div class="pub"><div class="pub-yr">2018</div><div class="pub-ttl">Leverage Effects and Asymmetric Volatility Between VIX and S&amp;P500 via DCC-GARCH</div><div class="pub-jnl">Global Management Journal, Vol. 15, No. 5</div></div>
+      <div class="pub"><div class="pub-yr">2004</div><div class="pub-ttl">Effective Financial Strategy and VBM for Korea Railway Business</div><div class="pub-jnl">Ministry of Railways</div><div class="pub-award">Best Paper Award</div></div>
+      <div class="pub"><div class="pub-yr">2002</div><div class="pub-ttl">Valuation Using WACC and APV by Grinblatt-Titman and Miles-Ezzell</div><div class="pub-jnl">Korea Enterprise Evaluation Institute</div><div class="pub-award">Best Paper Award · SMBA</div></div>
+    </div>
+    <div class="sec-fm fade-up">
+      <div class="sec-fm-header"><div class="sec-fm-title">Research Paper Files</div><div class="sec-fm-sub">Papers · Data</div></div>
+      <div class="sec-fm-body">
+        <input type="file" id="fi-pub" multiple>
+        <button class="btn-upload-sm" onclick="pwAsk('sec_upload',0,'fi-pub')">🔐 Upload File</button>
+        <div class="sec-file-list" id="fl-pub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fm-sec" id="files">
+  <div class="sin">
+    <div class="sec-head fade-up" style="border-bottom-color:rgba(255,255,255,0.2);">
+      <div class="sec-num-w">04</div>
+      <h2 class="sec-ttl-w">Research Resources &amp; Files</h2>
+    </div>
+    <div class="fm-grid fade-up">
+      <div class="fm-panel">
+        <div class="fm-panel-title">Upload &amp; Store Files</div>
+        <div class="fm-panel-sub">🔐 업로드/삭제는 관리자만 · 다운로드는 누구나</div>
+        <div class="drop-zone" id="dropZone">
+          <span class="drop-icon">📂</span>
+          <div class="drop-text">Tap or drag files here</div>
+          <div class="drop-sub">DOCX · XLSX · PDF · CSV · PNG · PPTX</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.pdf,.csv,.png,.jpg,.pptx,.py,.txt">
+        <button class="btn-gold" onclick="pwAsk('upload',0,'')">🔐 Select Files to Upload</button>
+        <div class="file-list" id="fileList">
+          <div class="empty-msg" id="emptyMsg">No files stored yet.</div>
+        </div>
+      </div>
+      <div class="fm-panel">
+        <div class="fm-panel-title">Research Downloads</div>
+        <div class="fm-panel-sub">Sample templates and research resources</div>
+        <div class="sample-file"><div class="sf-icon">📘</div><div class="sf-name">Curriculum Vitae</div><div class="sf-desc">Lee Hong Jae · PhD · Full Resume</div><div class="sf-dl-row"><span class="sf-tag">TXT</span><button class="sf-btn" onclick="dlSample('cv')">⬇ Download</button></div></div>
+        <div class="sample-file"><div class="sf-icon">📊</div><div class="sf-name">Black-Litterman SAA Model</div><div class="sf-desc">Excel workbook · Idzorek method</div><div class="sf-dl-row"><span class="sf-tag">CSV</span><button class="sf-btn" onclick="dlSample('bl')">⬇ Download</button></div></div>
+        <div class="sample-file"><div class="sf-icon">📄</div><div class="sf-name">VaR Risk Framework</div><div class="sf-desc">Parametric · Historical · Monte Carlo</div><div class="sf-dl-row"><span class="sf-tag">TXT</span><button class="sf-btn" onclick="dlSample('var')">⬇ Download</button></div></div>
+        <div class="sample-file"><div class="sf-icon">🐍</div><div class="sf-name">Python ML Finance Pipeline</div><div class="sf-desc">LSTM · XGBoost · Backtesting</div><div class="sf-dl-row"><span class="sf-tag">PY</span><button class="sf-btn" onclick="dlSample('py')">⬇ Download</button></div></div>
+        <div class="sample-file"><div class="sf-icon">📑</div><div class="sf-name">Credit Risk Template</div><div class="sf-desc">CreditMetrics · Basel II · Stress Test</div><div class="sf-dl-row"><span class="sf-tag">CSV</span><button class="sf-btn" onclick="dlSample('cr')">⬇ Download</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec-silver" id="contact">
+  <div class="sin">
+    <div class="sec-head fade-up"><div class="sec-num">06</div><h2 class="sec-ttl">Contact</h2></div>
+    <div class="con-grid fade-up">
+      <div class="con-card"><div class="con-lbl">Email</div><div class="con-val">hongjaelee77@gmail.com</div><div class="con-sub">Primary contact</div></div>
+      <div class="con-card"><div class="con-lbl">Phone</div><div class="con-val">+82 10-5838-4938</div><div class="con-sub">Korea · KST</div></div>
+      <div class="con-card"><div class="con-lbl">Location</div><div class="con-val">Seoul, Korea</div><div class="con-sub">Gangdong-gu</div></div>
+      <div class="con-card"><div class="con-lbl">Research</div><div class="con-val">AIQuant FER</div><div class="con-sub">Open to collab</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <div class="f-l">AIQuant Financial Engineering Research · Lee Hong Jae, PhD</div>
+  <div class="f-r">© 2026 · Seoul, Korea</div>
+</footer>
+
+<!-- ══════════════════════════════════
+     비밀번호 팝업 모달
+     업로드/삭제 시 공통으로 사용
+══════════════════════════════════ -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <div class="pw-icon" id="pwIcon">🔐</div>
+    <div class="pw-title" id="pwTitle">관리자 인증</div>
+    <div class="pw-sub" id="pwSub">비밀번호를 입력하세요</div>
+    <input type="password" class="pw-input" id="pwInput"
+      placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')pwConfirm()">
+    <div class="pw-btns">
+      <button class="pw-ok" onclick="pwConfirm()">✓ 확인</button>
+      <button class="pw-cancel" onclick="pwClose()">✕ 취소</button>
+    </div>
+    <div class="pw-err" id="pwErr">❌ 비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
+<script>
+/* TOP BAR */
+const mkts=[
+  {sym:'KOSPI',val:'--',chg:'--',up:true,id:'tb-kospi'},
+  {sym:'S&P',val:'--',chg:'--',up:true,id:'tb-sp'},
+  {sym:'QQQ',val:'--',chg:'--',up:false,id:'tb-qqq'},
+  {sym:'KRW',val:'--',chg:'--',up:false,id:'tb-krw'},
+  {sym:'SPY',val:'--',chg:'--',up:true,id:'tb-spy'},
+];
+document.getElementById('tb').innerHTML=mkts.map(m=>`<div class="tb-item" id="${m.id}"><span class="sym">${m.sym}</span><span class="val">${m.val}</span><span class="${m.up?'t-up':'t-dn'}">${m.chg}</span></div>`).join('');
+
+/* MARKET DATA */
+const GAS_URL='https://script.google.com/macros/s/AKfycbwdyBRu2G3HcumuXsc3eHsjOGJ4QCjcbfB1sph4ZEMgfr6if8I83z2jNZykw9kojVhy/exec';
+const C_COLORS={c0:'#60a5fa',c1:'#4ade80',c2:'#f87171',c3:'#fbbf24'};
+const C_INST={};
+
+function buildChart(id,pts,color){
+  const cv=document.getElementById(id);if(!cv||!pts||pts.length<2)return;
+  if(C_INST[id]){C_INST[id].data.labels=pts.map((_,i)=>i);C_INST[id].data.datasets[0].data=pts;C_INST[id].update('none');return;}
+  const ctx=cv.getContext('2d');const g=ctx.createLinearGradient(0,0,0,60);g.addColorStop(0,color+'44');g.addColorStop(1,color+'00');
+  C_INST[id]=new Chart(ctx,{type:'line',data:{labels:pts.map((_,i)=>i),datasets:[{data:pts,borderColor:color,borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:{duration:700}}});
+}
+function simChart(id,base,amp){let v=base,pts=[];for(let i=0;i<30;i++){v+=(Math.random()-0.48)*amp;v=Math.max(base*0.97,Math.min(base*1.03,v));pts.push(+v.toFixed(2));}buildChart(id,pts,C_COLORS[id]);}
+function mockHistory(price,days=30,vol=0.01){let v=price*(1-vol*days/2),pts=[];for(let i=0;i<days;i++){v+=(Math.random()-0.47)*price*vol;v=Math.max(price*0.92,Math.min(price*1.08,v));pts.push(+v.toFixed(2));}pts.push(price);return pts;}
+
+function setBox(id,price,prev){
+  const ve=document.getElementById('val-'+id);const ce=document.getElementById('chg-'+id);if(!ve||!ce)return;
+  if(!price&&prev){
+    if(id==='c3')ve.textContent=Number(prev).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    else if(prev>1000)ve.textContent=Number(prev).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    else ve.textContent=Number(prev).toFixed(2);
+    ce.textContent='휴장(전일종가)';ce.className='chart-box-chg';ce.style.color='rgba(255,255,255,0.4)';return;
+  }
+  if(!price||!prev||prev===0)return;
+  const pct=((price-prev)/prev*100);const up=pct>=0;
+  if(id==='c3')ve.textContent=Number(price).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  else if(price>1000)ve.textContent=Number(price).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  else ve.textContent=Number(price).toFixed(2);
+  ce.textContent=`${up?'▲':'▼'} ${up?'+':''}${pct.toFixed(2)}%`;ce.className='chart-box-chg '+(up?'t-up':'t-dn');
+}
+
+function setRate(id,price,prev,prefix,decimals){
+  const el=document.getElementById(id);if(!el)return;
+  if(!price&&prev){const v=el.querySelector('.rate-val');const c=el.querySelector('.rate-chg');if(v)v.textContent=prefix+Number(prev).toFixed(decimals);if(c){c.textContent='휴장';c.className='rate-chg';c.style.color='rgba(255,255,255,0.4)';}return;}
+  if(!price)return;
+  const pct=prev?((price-prev)/prev*100).toFixed(2):'0.00';const up=parseFloat(pct)>=0;
+  const v=el.querySelector('.rate-val');const c=el.querySelector('.rate-chg');
+  if(v)v.textContent=prefix+Number(price).toFixed(decimals);
+  if(c){c.textContent=`${up?'▲':'▼'}${up?'+':''}${pct}%`;c.className='rate-chg '+(up?'t-up':'t-dn');}
+}
+
+function assignRateIds(){const cards=document.querySelectorAll('.rate-card');['r-eurusd','r-usdjpy','r-spy','r-qqq','r-ktb','r-bok'].forEach((id,i)=>{if(cards[i])cards[i].id=id;});}
+
+function updateTopBar(data){
+  const map=[
+    {key:'KOSPI',tbId:'tb-kospi',fmt:p=>Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0})},
+    {key:'SP500',tbId:'tb-sp',fmt:p=>Number(p).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})},
+    {key:'NASDAQ',tbId:'tb-qqq',fmt:p=>Number(p).toFixed(0)},
+    {key:'USDKRW',tbId:'tb-krw',fmt:p=>Number(p).toLocaleString('ko-KR',{maximumFractionDigits:0})},
+  ];
+  map.forEach(m=>{
+    const d=data[m.key];if(!d)return;
+    const dp=d.price||d.prev;if(!dp)return;
+    const pct=d.price&&d.prev?((d.price-d.prev)/d.prev*100).toFixed(2):'0.00';const up=parseFloat(pct)>=0;
+    document.querySelectorAll('.tb-item').forEach(item=>{
+      if(item.id===m.tbId){
+        const v=item.querySelector('.val');const c=item.querySelector('span:last-child');
+        if(v)v.textContent=m.fmt(dp);
+        if(c){if(!d.price){c.textContent='휴장';c.className='';c.style.color='rgba(255,255,255,0.4)';}
+        else{c.textContent=`${up?'+':''}${pct}%`;c.className=up?'t-up':'t-dn';}}
+      }
+    });
+  });
+}
+
+async function loadMarket(){
+  try{
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);
+    const res=await fetch(GAS_URL,{signal:controller.signal});clearTimeout(timer);
+    const data=await res.json();
+    if(!data.ok&&!data.KOSPI)return;
+    const chartMap={c0:{key:'KOSPI',vol:0.008},c1:{key:'SP500',vol:0.006},c2:{key:'NASDAQ',vol:0.007},c3:{key:'USDKRW',vol:0.003}};
+    for(const [id,cfg] of Object.entries(chartMap)){
+      const d=data[cfg.key];if(!d)continue;
+      const dp=d.price||d.prev;if(!dp)continue;
+      setBox(id,d.price,d.prev);buildChart(id,mockHistory(dp,30,cfg.vol),C_COLORS[id]);
+    }
+    assignRateIds();
+    if(data.EURUSD)setRate('r-eurusd',data.EURUSD.price,data.EURUSD.prev,'',4);
+    if(data.USDJPY)setRate('r-usdjpy',data.USDJPY.price,data.USDJPY.prev,'',2);
+    if(data.SP500)setRate('r-spy',data.SP500.price,data.SP500.prev,'',2);
+    if(data.NASDAQ)setRate('r-qqq',data.NASDAQ.price,data.NASDAQ.prev,'',2);
+    updateTopBar(data);
+    const st=document.getElementById('mkt-status');
+    if(st)st.textContent='Google Finance Live · '+new Date().toLocaleTimeString('ko-KR');
+  }catch(e){console.warn('Market error:',e.message);}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  assignRateIds();
+  simChart('c0',6191,80);simChart('c1',7126,100);simChart('c2',24468,300);simChart('c3',1342,5);
+  setTimeout(loadMarket,800);
+  setInterval(loadMarket,180000);
+});
+
+/* ════════════════════════════════════════
+   비밀번호 팝업 시스템
+   FS_PW = 관리자 비밀번호 (여기서 변경)
+════════════════════════════════════════ */
+const FS_PW = 'aiquant2026';
+
+let _pwAction = null;  // 'upload' | 'delete' | 'sec_upload' | 'sec_delete'
+let _pwId     = 0;
+let _pwMeta   = '';
+
+function pwAsk(action, id, meta) {
+  _pwAction = action;
+  _pwId     = id;
+  _pwMeta   = meta;
+
+  const icon  = document.getElementById('pwIcon');
+  const title = document.getElementById('pwTitle');
+  const sub   = document.getElementById('pwSub');
+
+  if (action === 'upload' || action === 'sec_upload') {
+    icon.textContent  = '📤';
+    title.textContent = '업로드 인증';
+    sub.textContent   = '파일을 업로드하려면 관리자 비밀번호를 입력하세요';
+  } else {
+    icon.textContent  = '🗑️';
+    title.textContent = '삭제 인증';
+    sub.textContent   = '파일을 삭제하려면 관리자 비밀번호를 입력하세요';
+  }
+
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwErr').style.display = 'none';
+  document.getElementById('pwOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('pwInput').focus(), 100);
+}
+
+function pwClose() {
+  document.getElementById('pwOverlay').classList.remove('show');
+  _pwAction = null; _pwId = 0; _pwMeta = '';
+}
+
+async function pwConfirm() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw !== FS_PW) {
+    document.getElementById('pwErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+    const box = document.querySelector('.pw-box');
+    if(box){box.style.transform='translateX(-8px)';setTimeout(()=>{box.style.transform='translateX(8px)';},80);setTimeout(()=>{box.style.transform='none';},160);}
+    return;
+  }
+  /* 비번 맞음 — 값 저장 후 즉시 초기화 → 모달 닫기 → 실행 */
+  const action = _pwAction;
+  const id     = _pwId;
+  const meta   = _pwMeta;
+  _pwAction = null; _pwId = 0; _pwMeta = '';
+  document.getElementById('pwOverlay').classList.remove('show');
+
+  if (action === 'upload') {
+    document.getElementById('fileInput').click();
+  } else if (action === 'sec_upload') {
+    document.getElementById(meta).click();
+  } else if (action === 'delete') {
+    await dbDel(id);
+    renderGlobal();
+  } else if (action === 'sec_delete') {
+    const [sec, listId] = meta.split('|');
+    await dbDel(id);
+    renderSection(sec, listId);
+  }
+}
+
+/* INDEXEDDB */
+const DB='AIQuantFiles';let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=e=>e.target.result.createObjectStore('files',{keyPath:'id',autoIncrement:true});r.onsuccess=e=>{db=e.target.result;res();};r.onerror=rej;});}
+function dbAdd(rec){return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').add(rec).onsuccess=e=>res(e.target.result);t.onerror=rej;});}
+function dbAll(){return new Promise((res,rej)=>{const t=db.transaction('files','readonly');t.objectStore('files').getAll().onsuccess=e=>res(e.target.result);t.onerror=rej;});}
+function dbDel(id){return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').delete(id).onsuccess=res;t.onerror=rej;});}
+
+function icon(n){const e=(n.split('.').pop()||'').toLowerCase();if(['xlsx','xls','csv'].includes(e))return'📊';if(['docx','doc'].includes(e))return'📄';if(e==='pdf')return'📕';if(['png','jpg'].includes(e))return'🖼️';if(e==='pptx')return'📑';if(e==='py')return'🐍';return'📁';}
+function sz(b){return b>1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB';}
+function dt(ts){const d=new Date(ts);return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
+
+async function renderGlobal(){
+  const list=document.getElementById('fileList');const em=document.getElementById('emptyMsg');
+  const all=await dbAll();const items=all.filter(f=>!f.section);
+  em.style.display=items.length?'none':'block';
+  list.querySelectorAll('.file-item').forEach(el=>el.remove());
+  items.forEach(f=>{
+    const d=document.createElement('div');d.className='file-item';
+    d.innerHTML=`<div class="file-icon">${icon(f.name)}</div>
+      <div class="file-name">${f.name}</div>
+      <div class="file-meta">${sz(f.size)} · ${dt(f.ts)}</div>
+      <div class="file-btns">
+        <button class="btn-dl" onclick="dlStored(${f.id})">⬇ Download</button>
+        <button class="btn-del" onclick="pwAsk('delete',${f.id},'${f.name.replace(/'/g,"\\'")}')">🔐 Delete</button>
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+async function renderSection(sec,listId){
+  const list=document.getElementById(listId);if(!list)return;
+  const all=await dbAll();const items=all.filter(f=>f.section===sec);
+  list.innerHTML='';
+  if(!items.length){list.innerHTML='<div class="sec-empty">No files uploaded yet.</div>';return;}
+  items.forEach(f=>{
+    const d=document.createElement('div');d.className='sec-file-item';
+    d.innerHTML=`<div class="sfi-icon">${icon(f.name)}</div>
+      <div class="sfi-name">${f.name}</div>
+      <div class="sfi-meta">${sz(f.size)} · ${dt(f.ts)}</div>
+      <div class="sfi-btns">
+        <button class="btn-sdl" onclick="dlStored(${f.id})">⬇ Download</button>
+        <button class="btn-sdel" onclick="pwAsk('sec_delete',${f.id},'${sec}|${listId}')">🔐</button>
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+async function renderAll(){
+  await renderGlobal();
+  await renderSection('exp','fl-exp');
+  await renderSection('car','fl-car');
+  await renderSection('pub','fl-pub');
+  await renderSection('edu','fl-edu');
+}
+
+async function storeFile(f,sec){
+  const buf=await f.arrayBuffer();
+  await dbAdd({name:f.name,size:f.size,type:f.type,data:buf,ts:Date.now(),section:sec||null});
+}
+
+async function dlStored(id){
+  const all=await dbAll();const f=all.find(x=>x.id===id);if(!f)return;
+  const blob=new Blob([f.data],{type:f.type||'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+/* 드롭존 & 파일입력 */
+const dz=document.getElementById('dropZone');
+const fi=document.getElementById('fileInput');
+dz.addEventListener('click',()=>pwAsk('upload',0,''));
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',async e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  const files=e.dataTransfer.files;
+  if(!files||files.length===0)return;
+  // 드래그 드롭도 비번 먼저
+  _pwAction='upload';_pwId=0;_pwMeta='drop';
+  document.getElementById('pwIcon').textContent='📤';
+  document.getElementById('pwTitle').textContent='업로드 인증';
+  document.getElementById('pwSub').textContent=`${files.length}개 파일을 업로드하려면 비밀번호를 입력하세요`;
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').style.display='none';
+  document.getElementById('pwOverlay').classList.add('show');
+  // 드롭 파일을 임시 저장
+  window._dropFiles = files;
+  setTimeout(()=>document.getElementById('pwInput').focus(),100);
+});
+
+fi.addEventListener('change',async e=>{
+  for(const f of Array.from(e.target.files))await storeFile(f,null);
+  renderGlobal();e.target.value='';
+});
+
+/* pwConfirm 에서 drop 처리 추가 — override */
+const _origPwConfirm = window.pwConfirm;
+window.pwConfirm = async function() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw !== FS_PW) {
+    document.getElementById('pwErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+    const box = document.querySelector('.pw-box');
+    if(box){box.style.transform='translateX(-8px)';setTimeout(()=>{box.style.transform='translateX(8px)';},80);setTimeout(()=>{box.style.transform='none';},160);}
+    return;
+  }
+  const action = _pwAction;
+  const id     = _pwId;
+  const meta   = _pwMeta;
+  _pwAction = null; _pwId = 0; _pwMeta = '';
+  document.getElementById('pwOverlay').classList.remove('show');
+
+  if (action === 'upload' && meta === 'drop') {
+    const files = window._dropFiles;
+    window._dropFiles = null;
+    if(files){for(const f of Array.from(files))await storeFile(f,null);renderGlobal();}
+  } else if (action === 'upload') {
+    document.getElementById('fileInput').click();
+  } else if (action === 'sec_upload') {
+    document.getElementById(meta).click();
+  } else if (action === 'delete') {
+    await dbDel(id);
+    renderGlobal();
+  } else if (action === 'sec_delete') {
+    const [sec, listId] = meta.split('|');
+    await dbDel(id);
+    renderSection(sec, listId);
+  }
+};
+
+function setupSec(inputId,sec,listId){
+  const inp=document.getElementById(inputId);if(!inp)return;
+  inp.addEventListener('change',async e=>{for(const f of Array.from(e.target.files))await storeFile(f,sec);renderSection(sec,listId);e.target.value='';});
+}
+
+function dlSample(t){
+  const s={
+    cv:{n:'LeeHongJae_CV.txt',c:'AIQuant Financial Engineering Research\nLee Hong Jae | PhD | hongjaelee77@gmail.com | +82 10-5838-4938\nSeoul, Korea\n\nPhD in Business Administration (Finance) — Kyung Hee University (1997-2001)'},
+    bl:{n:'BlackLitterman_SAA.csv',c:'Asset,Weight,ExpReturn,Sigma\nKOSPI200,0.25,0.085,0.18\nKTB10Y,0.30,0.035,0.04\nGlobalEQ,0.25,0.075,0.15\nUSBond,0.20,0.040,0.05'},
+    var:{n:'VaR_Framework.txt',c:'VaR Risk Framework\n1. Parametric VaR\n2. Historical Simulation VaR\n3. Monte Carlo VaR\n4. Extreme VaR (GPD/GEV)\n5. CVaR / Expected Shortfall'},
+    py:{n:'ML_Finance.py',c:'# AIQuant ML Finance Pipeline\nimport numpy as np, pandas as pd\nprint("AIQuant ML Pipeline")'},
+    cr:{n:'CreditRisk.csv',c:'ObligorID,PD,LGD,EAD,Rating,EL\nCORP001,0.005,0.45,1000000,BBB,2250\nCORP002,0.012,0.40,500000,BB,2400'},
+  };
+  const x=s[t];
+  const blob=new Blob([x.c],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=x.n;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+openDB().then(()=>{
+  renderAll();
+  setupSec('fi-exp','exp','fl-exp');
+  setupSec('fi-car','car','fl-car');
+  setupSec('fi-pub','pub','fl-pub');
+  setupSec('fi-edu','edu','fl-edu');
+});
+
+/* SCROLL ANIMATE */
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
+document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
+
+/* SKILL BARS */
+const skObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.sk-fill').forEach(b=>{const w=b.style.width;b.style.width='0';requestAnimationFrame(()=>{b.style.width=w;});});}});},{threshold:0.15});
+document.querySelectorAll('.sk-cols').forEach(el=>skObs.observe(el));
+</script>
+</body>
+</html>
 
